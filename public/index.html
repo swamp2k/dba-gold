@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DBA Gold</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+
+    :root {
+      --gold: #FFD700;
+      --gold-dim: #b89a00;
+      --bg: #0d0d1a;
+      --card: #131327;
+      --border: #252545;
+      --text: #dde0ee;
+      --muted: #666888;
+      --input-bg: #0a0a16;
+      --green: #3ecf6e;
+      --red: #f05656;
+    }
+
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; line-height: 1.6; }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #0f0f20, #141430);
+      border-bottom: 1px solid var(--gold-dim);
+      padding: 1rem 2rem;
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .logo { font-size: 1.6rem; font-weight: 800; color: var(--gold); text-shadow: 0 0 24px rgba(255,215,0,.3); }
+    .logo span { color: #fff; }
+    .tagline { color: var(--muted); font-size: 0.82rem; flex: 1; }
+    .logout-btn {
+      background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--muted);
+      padding: 0.3rem 0.8rem; font-size: 0.82rem; cursor: pointer; font-family: inherit; transition: border-color .15s, color .15s;
+      text-decoration: none; display: inline-block;
+    }
+    .logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── Layout ── */
+    main { max-width: 860px; margin: 1.75rem auto; padding: 0 1.25rem; display: flex; flex-direction: column; gap: 1.1rem; }
+
+    /* ── Cards ── */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+
+    /* ── Form fields ── */
+    .field { margin-bottom: 1rem; }
+    label {
+      display: block; font-size: 0.76rem; font-weight: 700; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--gold); margin-bottom: 0.4rem;
+    }
+    input[type="text"], input[type="password"], textarea, select {
+      width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); padding: 0.68rem 0.95rem; font-size: 0.93rem; font-family: inherit; outline: none; transition: border-color .18s;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--gold); }
+    textarea { height: 88px; resize: vertical; }
+
+    /* ── Chips ── */
+    .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem; }
+    .chip {
+      background: var(--input-bg); border: 1px solid var(--border); border-radius: 20px;
+      padding: 0.25rem 0.72rem; font-size: 0.77rem; color: var(--muted); cursor: pointer; transition: border-color .15s, color .15s; font-family: inherit;
+    }
+    .chip:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* ── Select wrapper ── */
+    .select-wrap { position: relative; }
+    .select-wrap::after { content: '▾'; position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--gold); pointer-events: none; font-size: 0.82rem; }
+    .select-wrap select { padding-right: 2rem; appearance: none; -webkit-appearance: none; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: linear-gradient(135deg, #f5c800, #e6a200); color: #0d0d1a;
+      border: none; border-radius: 9px; padding: 0.68rem 1.6rem; font-size: 0.95rem; font-weight: 800;
+      cursor: pointer; transition: opacity .18s, transform .1s; font-family: inherit;
+    }
+    .btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    .btn:active:not(:disabled) { transform: translateY(0); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-sm {
+      background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--muted);
+      padding: 0.25rem 0.65rem; font-size: 0.78rem; cursor: pointer; font-family: inherit; transition: border-color .15s, color .15s;
+    }
+    .btn-sm:hover { border-color: var(--gold); color: var(--gold); }
+    .btn-sm.danger:hover { border-color: var(--red); color: var(--red); }
+    .btn-sm.gold { border-color: var(--gold-dim); color: var(--gold); }
+
+    /* ── Action row ── */
+    .action-row { display: flex; align-items: flex-end; gap: 0.75rem; }
+    .action-row .select-wrap { flex: 1; max-width: 220px; }
+
+    /* ── Badge ── */
+    .badge { font-size: 0.73rem; font-weight: 600; padding: 0.2rem 0.65rem; border-radius: 20px; }
+    .badge.idle    { background: #1c1c36; color: var(--muted); }
+    .badge.loading { background: #0d2a1a; color: var(--green); }
+    .badge.done    { background: #0d2a1a; color: var(--green); }
+    .badge.error   { background: #2a0d0d; color: var(--red); }
+
+    /* ── Results ── */
+    .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; }
+    .results-title { font-size: 0.76rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); }
+    .results-body { font-size: 0.93rem; line-height: 1.75; min-height: 140px; word-break: break-word; }
+    .placeholder { color: var(--muted); font-style: italic; font-size: 0.88rem; }
+
+    /* ── Markdown prose ── */
+    .results-body h1, .results-body h2, .results-body h3 { color: var(--gold); margin: 1rem 0 0.35rem; font-weight: 700; line-height: 1.3; }
+    .results-body h1 { font-size: 1.15rem; } .results-body h2 { font-size: 1rem; } .results-body h3 { font-size: 0.95rem; }
+    .results-body p { margin: 0.5rem 0; }
+    .results-body ul, .results-body ol { padding-left: 1.4rem; margin: 0.35rem 0; }
+    .results-body li { margin: 0.18rem 0; }
+    .results-body strong { color: #fff; font-weight: 700; }
+    .results-body em { color: #b0b4cc; }
+    .results-body hr { border: none; border-top: 1px solid var(--border); margin: 0.9rem 0; }
+    .results-body code { background: #0a0a18; border: 1px solid var(--border); border-radius: 4px; padding: .1em .4em; font-size: .87em; font-family: 'Cascadia Code', monospace; }
+
+    /* ── Cursor ── */
+    .cursor { display: inline-block; width: 2px; height: 1.1em; background: var(--gold); margin-left: 1px; vertical-align: text-bottom; animation: blink .85s step-end infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ── Schedule bar ── */
+    #scheduleBar { display: flex; justify-content: flex-end; margin-bottom: 0.85rem; }
+
+    /* ── Collapsible sections ── */
+    .section-toggle {
+      display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;
+    }
+    .section-toggle:hover .section-title { color: var(--gold); }
+    .section-title { font-size: 0.76rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); transition: color .15s; }
+    .section-chevron { color: var(--muted); font-size: 0.85rem; transition: transform .2s; }
+    .section-chevron.open { transform: rotate(180deg); }
+    .section-body { margin-top: 1rem; }
+
+    /* ── History / Recurring rows ── */
+    .entry-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .entry-row {
+      background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.65rem 0.9rem; display: flex; align-items: flex-start; gap: 0.75rem;
+    }
+    .entry-meta { flex: 1; min-width: 0; }
+    .entry-url { font-size: 0.8rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .entry-prompt { font-size: 0.88rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 0.1rem; }
+    .entry-info { font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; }
+    .entry-actions { display: flex; gap: 0.35rem; flex-shrink: 0; padding-top: 0.1rem; }
+    .empty-note { color: var(--muted); font-size: 0.88rem; font-style: italic; }
+
+    /* ── Recurring result expander ── */
+    .rec-result { display: none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); font-size: 0.88rem; }
+    .rec-result.open { display: block; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.65); display: flex;
+      align-items: center; justify-content: center; z-index: 40;
+    }
+    .modal-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 1.75rem; width: 100%; max-width: 400px;
+    }
+    .modal-card h3 { color: var(--gold); font-size: 1rem; margin-bottom: 1.1rem; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1.2rem; }
+    .btn-cancel {
+      background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--muted);
+      padding: 0.6rem 1.2rem; font-size: 0.9rem; cursor: pointer; font-family: inherit; transition: border-color .15s;
+    }
+    .btn-cancel:hover { border-color: var(--text); color: var(--text); }
+  </style>
+</head>
+<body>
+
+<!-- ══ Main app ══════════════════════════════════════════ -->
+<div id="app">
+  <header>
+    <div class="logo">DBA <span>Gold</span></div>
+    <div class="tagline">AI-powered DBA.dk listing analyzer</div>
+    <a class="logout-btn" href="/cdn-cgi/access/logout">Log out</a>
+  </header>
+
+  <main>
+    <!-- Input form -->
+    <div class="card">
+      <div class="field">
+        <label for="url">DBA.dk Search URL</label>
+        <input type="text" id="url" placeholder="https://www.dba.dk/billede-lyd-foto/grafikkort/?pris=%2C2000" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="prompt">What to look for</label>
+        <textarea id="prompt" placeholder="Find the best GPU for gaming under 2000 kr. Prioritize newer generations."></textarea>
+        <div class="chips">
+          <button class="chip" onclick="setPrompt('Find the best GPU for gaming. Prioritize performance-to-price ratio.')">Best GPU</button>
+          <button class="chip" onclick="setPrompt('I have a GTX 1070. Find meaningful upgrades under 1500 kr.')">GPU upgrade</button>
+          <button class="chip" onclick="setPrompt('Find the best 4K TV deals. Bigger is better, must be 55\" or more.')">4K TV deals</button>
+          <button class="chip" onclick="setPrompt('Find the cheapest listings that still look to be in good condition.')">Cheapest deals</button>
+          <button class="chip" onclick="setPrompt('Analyser alle annoncer og fortæl mig hvilke der er de bedste tilbud.')">Bedste tilbud (DK)</button>
+        </div>
+      </div>
+      <div class="action-row">
+        <div class="select-wrap">
+          <label for="model">Model</label>
+          <select id="model">
+            <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 — Fast & cheap</option>
+            <option value="claude-sonnet-4-6">Sonnet 4.6 — Balanced</option>
+            <option value="claude-opus-4-8">Opus 4.8 — Most capable</option>
+          </select>
+        </div>
+        <button class="btn" id="analyzeBtn" onclick="analyze()">⚡ Analyze Listings</button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="card">
+      <div class="results-header">
+        <div class="results-title">Analysis</div>
+        <div class="badge idle" id="badge">Ready</div>
+      </div>
+      <div id="scheduleBar" hidden>
+        <button class="btn-sm gold" onclick="openScheduleModal()">⟳ Schedule this search</button>
+        <button class="btn-sm" onclick="exportCurrent()">⬇ Export .md</button>
+      </div>
+      <div class="results-body" id="results">
+        <span class="placeholder">Paste a DBA.dk URL above, describe what you need, then hit Analyze.</span>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="card">
+      <div class="section-toggle" onclick="toggleSection('history')">
+        <span class="section-title">Search History</span>
+        <span class="section-chevron" id="historyChevron">▾</span>
+      </div>
+      <div class="section-body" id="historyBody" hidden>
+        <div class="entry-list" id="historyList">
+          <span class="empty-note">Loading…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recurring -->
+    <div class="card">
+      <div class="section-toggle" onclick="toggleSection('recurring')" style="margin-bottom:0">
+        <span class="section-title">Scheduled Searches</span>
+        <div style="display:flex;align-items:center;gap:.6rem">
+          <button class="btn-sm gold" onclick="event.stopPropagation();openScheduleModal()" style="font-size:.75rem">+ New</button>
+          <span class="section-chevron" id="recurringChevron">▾</span>
+        </div>
+      </div>
+      <div class="section-body" id="recurringBody" hidden>
+        <div class="entry-list" id="recurringList">
+          <span class="empty-note">Loading…</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ══ Schedule modal ════════════════════════════════════ -->
+<div class="modal-overlay" id="scheduleModal" hidden>
+  <div class="modal-card">
+    <h3>Schedule Search</h3>
+    <div class="field">
+      <label for="scheduleName">Name</label>
+      <input type="text" id="scheduleName" placeholder="GPU deals tracker" />
+    </div>
+    <div class="field">
+      <label for="scheduleInterval">Run every</label>
+      <div class="select-wrap">
+        <select id="scheduleInterval">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeScheduleModal()">Cancel</button>
+      <button class="btn" onclick="saveSchedule()">Schedule</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Auth ──────────────────────────────────────────────
+  // Access is enforced at the edge by Cloudflare Access (Zero Trust).
+  // "Log out" links to /cdn-cgi/access/logout in the header.
+
+  function authHeaders() {
+    return { 'Content-Type': 'application/json' };
+  }
+
+  // ── Boot ──────────────────────────────────────────────
+
+  window.addEventListener('DOMContentLoaded', () => {
+    loadHistory();
+    loadRecurring();
+  });
+
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') analyze();
+  });
+
+  // ── Analyze ───────────────────────────────────────────
+
+  // Holds the most recent analysis shown in the results pane (live run or a
+  // history entry the user opened), so it can be exported to Markdown.
+  let lastAnalysis = null;
+
+  function setPrompt(text) {
+    document.getElementById('prompt').value = text;
+    document.getElementById('prompt').focus();
+  }
+
+  async function analyze() {
+    const dbaUrl    = document.getElementById('url').value.trim();
+    const userPrompt = document.getElementById('prompt').value.trim();
+    const model     = document.getElementById('model').value;
+    if (!dbaUrl) { alert('Please enter a DBA.dk URL.'); return; }
+
+    const btn     = document.getElementById('analyzeBtn');
+    const results = document.getElementById('results');
+    const badge   = document.getElementById('badge');
+    const schedBar = document.getElementById('scheduleBar');
+
+    btn.disabled = true;
+    results.innerHTML = '';
+    badge.className = 'badge loading';
+    badge.textContent = 'Analyzing…';
+    schedBar.hidden = true;
+
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    results.appendChild(cursor);
+
+    let accumulated = '';
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ dbaUrl, userPrompt, model }),
+      });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          let ev;
+          try { ev = JSON.parse(line.slice(6)); } catch { continue; }
+          if (ev.type === 'status') {
+            badge.className = 'badge loading';
+            badge.textContent = ev.message;
+          } else if (ev.type === 'text') {
+            accumulated += ev.text;
+            results.innerHTML = marked.parse(accumulated);
+            results.appendChild(cursor);
+          } else if (ev.type === 'done') {
+            cursor.remove();
+            results.innerHTML = marked.parse(accumulated);
+            badge.className = 'badge done';
+            badge.textContent = 'Done';
+            lastAnalysis = { url: dbaUrl, prompt: userPrompt, model, text: accumulated, timestamp: Date.now() };
+            schedBar.hidden = false;
+            setTimeout(loadHistory, 500);
+          } else if (ev.type === 'error') {
+            cursor.remove();
+            results.innerHTML = marked.parse(accumulated) + `<p style="color:var(--red);margin-top:.75rem">⚠ ${ev.message}</p>`;
+            badge.className = 'badge error';
+            badge.textContent = 'Error';
+          }
+        }
+      }
+      cursor.remove();
+      results.innerHTML = marked.parse(accumulated);
+      if (badge.className === 'badge loading') { badge.className = 'badge done'; badge.textContent = 'Done'; schedBar.hidden = false; }
+      if (accumulated) lastAnalysis = { url: dbaUrl, prompt: userPrompt, model, text: accumulated, timestamp: lastAnalysis?.timestamp ?? Date.now() };
+    } catch (err) {
+      cursor.remove();
+      results.innerHTML = `<p style="color:var(--red)">⚠ ${err.message ?? 'Unknown error'}</p>`;
+      badge.className = 'badge error'; badge.textContent = 'Error';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Export to Markdown ────────────────────────────────
+
+  function buildMarkdownDoc(a) {
+    const when = new Date(a.timestamp || Date.now()).toISOString();
+    return [
+      `# DBA Gold analysis`,
+      '',
+      `- **Search URL:** ${a.url}`,
+      `- **Query:** ${a.prompt || '(default)'}`,
+      `- **Model:** ${modelLabel(a.model)}`,
+      `- **Generated:** ${when}`,
+      '',
+      '---',
+      '',
+      a.text || '',
+      '',
+    ].join('\n');
+  }
+
+  function downloadMarkdown(filename, text) {
+    const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  function exportAnalysis(a) {
+    if (!a || !a.text) { alert('Nothing to export yet — run an analysis first.'); return; }
+    const stamp = new Date(a.timestamp || Date.now()).toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    downloadMarkdown(`dba-gold-${stamp}.md`, buildMarkdownDoc(a));
+  }
+
+  function exportCurrent() { exportAnalysis(lastAnalysis); }
+
+  // Open a saved history entry's result in the results pane.
+  function viewHistory(e) {
+    if (!e.result) { alert('This entry has no saved result (it predates result saving).'); return; }
+    lastAnalysis = { url: e.url, prompt: e.prompt, model: e.model, text: e.result, timestamp: e.timestamp };
+    const results = document.getElementById('results');
+    const badge = document.getElementById('badge');
+    results.innerHTML = marked.parse(e.result);
+    badge.className = 'badge done';
+    badge.textContent = 'Loaded from history';
+    document.getElementById('scheduleBar').hidden = false;
+    document.getElementById('url').value = e.url;
+    document.getElementById('prompt').value = e.prompt;
+    document.getElementById('model').value = e.model;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── History ───────────────────────────────────────────
+
+  function relativeTime(ts) {
+    const diff = Date.now() - ts;
+    if (diff < 60000) return 'just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return `${Math.floor(diff / 86400000)}d ago`;
+  }
+
+  let historyEntries = [];
+  function findHistory(id) { return historyEntries.find(e => e.id === id); }
+
+  async function loadHistory() {
+    const res = await fetch('/api/history', { headers: authHeaders() });
+    if (!res.ok) return;
+    historyEntries = await res.json();
+    const el = document.getElementById('historyList');
+    if (!historyEntries.length) { el.innerHTML = '<span class="empty-note">No searches yet.</span>'; return; }
+    el.innerHTML = historyEntries.map(e => `
+      <div class="entry-row">
+        <div class="entry-meta">
+          <div class="entry-url" title="${e.url}">${e.url}</div>
+          <div class="entry-prompt">${e.prompt}</div>
+          <div class="entry-info">${relativeTime(e.timestamp)} · ${modelLabel(e.model)}</div>
+        </div>
+        <div class="entry-actions">
+          ${e.result ? `<button class="btn-sm" title="View saved result" onclick="viewHistory(findHistory('${e.id}'))">👁 View</button>
+          <button class="btn-sm" title="Export result as Markdown" onclick="exportAnalysis(toAnalysis(findHistory('${e.id}')))">⬇ .md</button>` : ''}
+          <button class="btn-sm" title="Load into the form" onclick="loadSearch(findHistory('${e.id}'))">▶ Load</button>
+          <button class="btn-sm danger" title="Delete" onclick="deleteHistory('${e.id}')">×</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function toAnalysis(e) { return { url: e.url, prompt: e.prompt, model: e.model, text: e.result, timestamp: e.timestamp }; }
+
+  function loadSearch(e) {
+    document.getElementById('url').value = e.url;
+    document.getElementById('prompt').value = e.prompt;
+    document.getElementById('model').value = e.model;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function deleteHistory(id) {
+    await fetch(`/api/history/${id}`, { method: 'DELETE', headers: authHeaders() });
+    loadHistory();
+  }
+
+  // ── Recurring ─────────────────────────────────────────
+
+  function modelLabel(m) {
+    if (m === 'claude-opus-4-8') return 'Opus 4.8';
+    if (m === 'claude-sonnet-4-6') return 'Sonnet 4.6';
+    return 'Haiku 4.5';
+  }
+
+  async function loadRecurring() {
+    const res = await fetch('/api/recurring', { headers: authHeaders() });
+    if (!res.ok) return;
+    const list = await res.json();
+    const el = document.getElementById('recurringList');
+    if (!list.length) { el.innerHTML = '<span class="empty-note">No scheduled searches yet.</span>'; return; }
+    el.innerHTML = list.map(s => `
+      <div class="entry-row" id="rec-${s.id}" style="flex-direction:column;align-items:stretch">
+        <div style="display:flex;align-items:flex-start;gap:.75rem">
+          <div class="entry-meta">
+            <div class="entry-prompt">${s.name}</div>
+            <div class="entry-url" title="${s.url}">${s.url}</div>
+            <div class="entry-info">
+              ${s.interval === 'weekly' ? 'Weekly' : 'Daily'} · ${modelLabel(s.model)}
+              ${s.lastRun ? ` · Last run: ${relativeTime(s.lastRun)}` : ' · Never run'}
+            </div>
+          </div>
+          <div class="entry-actions">
+            ${s.lastResult ? `<button class="btn-sm" onclick="toggleRecResult('${s.id}')">Results</button>` : ''}
+            <button class="btn-sm" title="Load this search" onclick="loadSearch(${JSON.stringify(s).replace(/"/g, '&quot;')})">▶ Load</button>
+            <button class="btn-sm danger" onclick="deleteRecurring('${s.id}')">×</button>
+          </div>
+        </div>
+        ${s.lastResult ? `<div class="rec-result results-body" id="recres-${s.id}">${marked.parse(s.lastResult)}</div>` : ''}
+      </div>`).join('');
+  }
+
+  function toggleRecResult(id) {
+    const el = document.getElementById(`recres-${id}`);
+    if (el) el.classList.toggle('open');
+  }
+
+  async function deleteRecurring(id) {
+    await fetch(`/api/recurring/${id}`, { method: 'DELETE', headers: authHeaders() });
+    loadRecurring();
+  }
+
+  // ── Schedule modal ────────────────────────────────────
+
+  function openScheduleModal() {
+    document.getElementById('scheduleName').value = document.getElementById('prompt').value.slice(0, 40);
+    document.getElementById('scheduleModal').hidden = false;
+  }
+
+  function closeScheduleModal() {
+    document.getElementById('scheduleModal').hidden = true;
+  }
+
+  async function saveSchedule() {
+    const name     = document.getElementById('scheduleName').value.trim();
+    const interval = document.getElementById('scheduleInterval').value;
+    const url      = document.getElementById('url').value.trim();
+    const prompt   = document.getElementById('prompt').value.trim();
+    const model    = document.getElementById('model').value;
+
+    if (!url) { alert('No URL to schedule. Run a search first.'); return; }
+
+    await fetch('/api/recurring', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ name: name || prompt.slice(0, 40), url, prompt, model, interval }),
+    });
+
+    closeScheduleModal();
+    // Open the recurring section if it's collapsed
+    if (document.getElementById('recurringBody').hidden) toggleSection('recurring');
+    loadRecurring();
+  }
+
+  // ── Collapsible sections ──────────────────────────────
+
+  function toggleSection(name) {
+    const body    = document.getElementById(`${name}Body`);
+    const chevron = document.getElementById(`${name}Chevron`);
+    body.hidden = !body.hidden;
+    chevron.classList.toggle('open', !body.hidden);
+  }
+</script>
+</body>
+</html>

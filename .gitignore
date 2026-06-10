@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Secrets / local env — NEVER commit
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+
+# Wrangler
+.wrangler/
+wrangler.toml.bak
+
+# Claude Code local (machine-specific) settings
+.claude/settings.local.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
