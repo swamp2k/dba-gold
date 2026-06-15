@@ -140,20 +140,14 @@
     .entry-list { display: flex; flex-direction: column; gap: 0.5rem; }
     .entry-row {
       background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px;
-      padding: 0.65rem 0.9rem; display: flex; align-items: flex-start; gap: 0.75rem;
+      padding: 0.65rem 0.9rem; display: flex; flex-direction: column; gap: 0.5rem;
     }
-    .entry-meta { flex: 1; min-width: 0; }
+    .entry-meta { min-width: 0; }
     .entry-url { font-size: 0.8rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .entry-prompt { font-size: 0.88rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 0.1rem; }
+    .entry-prompt { font-size: 0.88rem; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 0.1rem; }
     .entry-info { font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; }
-    .entry-actions { display: flex; gap: 0.35rem; flex-shrink: 0; padding-top: 0.1rem; }
+    .entry-actions { display: flex; gap: 0.35rem; flex-wrap: wrap; }
     .empty-note { color: var(--muted); font-size: 0.88rem; font-style: italic; }
-
-    @media (max-width: 540px) {
-      .entry-row { flex-direction: column; gap: 0.5rem; }
-      .entry-url, .entry-prompt { white-space: normal; overflow: visible; text-overflow: unset; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-      .entry-actions { padding-top: 0; flex-wrap: wrap; }
-    }
 
     /* ── Recurring result expander ── */
     .rec-result { display: none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); font-size: 0.88rem; }
@@ -517,21 +511,19 @@
     const el = document.getElementById('recurringList');
     if (!list.length) { el.innerHTML = '<span class="empty-note">No scheduled searches yet.</span>'; return; }
     el.innerHTML = list.map(s => `
-      <div class="entry-row" id="rec-${s.id}" style="flex-direction:column;align-items:stretch">
-        <div style="display:flex;align-items:flex-start;gap:.75rem">
-          <div class="entry-meta">
-            <div class="entry-prompt">${s.name}</div>
-            <div class="entry-url" title="${s.url}">${s.url}</div>
-            <div class="entry-info">
-              ${s.interval === 'weekly' ? 'Weekly' : 'Daily'} · ${modelLabel(s.model)}
-              ${s.lastRun ? ` · Last run: ${relativeTime(s.lastRun)}` : ' · Never run'}
-            </div>
+      <div class="entry-row" id="rec-${s.id}">
+        <div class="entry-meta">
+          <div class="entry-prompt">${s.name}</div>
+          <div class="entry-url" title="${s.url}">${s.url}</div>
+          <div class="entry-info">
+            ${s.interval === 'weekly' ? 'Weekly' : 'Daily'} · ${modelLabel(s.model)}
+            ${s.lastRun ? ` · Last run: ${relativeTime(s.lastRun)}` : ' · Never run'}
           </div>
-          <div class="entry-actions">
-            ${s.lastResult ? `<button class="btn-sm" onclick="toggleRecResult('${s.id}')">Results</button>` : ''}
-            <button class="btn-sm" title="Load this search" onclick="loadSearch(${JSON.stringify(s).replace(/"/g, '&quot;')})">▶ Load</button>
-            <button class="btn-sm danger" onclick="deleteRecurring('${s.id}')">×</button>
-          </div>
+        </div>
+        <div class="entry-actions">
+          ${s.lastResult ? `<button class="btn-sm" onclick="toggleRecResult('${s.id}')">Results</button>` : ''}
+          <button class="btn-sm" title="Load this search" onclick="loadSearch(${JSON.stringify(s).replace(/"/g, '&quot;')})">▶ Load</button>
+          <button class="btn-sm danger" onclick="deleteRecurring('${s.id}')">×</button>
         </div>
         ${s.lastResult ? `<div class="rec-result results-body" id="recres-${s.id}">${marked.parse(s.lastResult)}</div>` : ''}
       </div>`).join('');
