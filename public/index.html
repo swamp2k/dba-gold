@@ -149,6 +149,12 @@
     .entry-actions { display: flex; gap: 0.35rem; flex-shrink: 0; padding-top: 0.1rem; }
     .empty-note { color: var(--muted); font-size: 0.88rem; font-style: italic; }
 
+    @media (max-width: 540px) {
+      .entry-row { flex-direction: column; gap: 0.5rem; }
+      .entry-url, .entry-prompt { white-space: normal; overflow: visible; text-overflow: unset; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      .entry-actions { padding-top: 0; flex-wrap: wrap; }
+    }
+
     /* ── Recurring result expander ── */
     .rec-result { display: none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); font-size: 0.88rem; }
     .rec-result.open { display: block; }
