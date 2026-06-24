@@ -334,6 +334,24 @@ async function doRecurring(env: Env): Promise<void> {
   if (changed) await saveRecurring(env, list);
 }
 
+// ── Export (raw JSON) ─────────────────────────────────
+
+async function handleExport(request: Request): Promise<Response> {
+  let dbaUrl: string;
+  try {
+    const body = await request.json<{ dbaUrl?: string }>();
+    dbaUrl = (body.dbaUrl ?? "").trim();
+  } catch {
+    return json({ error: "Invalid JSON body" }, 400);
+  }
+  if (!dbaUrl) return json({ error: "dbaUrl is required" }, 400);
+
+  const { listings, total } = await fetchAllListings(dbaUrl);
+  if (listings.length === 0) return json({ error: "No listings found. The URL may not be a DBA search page." }, 400);
+
+  return json({ url: dbaUrl, exportedAt: new Date().toISOString(), total, listings });
+}
+
 // ── Router ────────────────────────────────────────────
 
 export default {
@@ -345,6 +363,7 @@ export default {
     // API routes (gated upstream by Cloudflare Access)
     if (pathname.startsWith("/api/")) {
       if (pathname === "/api/analyze"   && request.method === "POST")   return handleAnalyze(request, env, ctx);
+      if (pathname === "/api/export"    && request.method === "POST")   return handleExport(request);
       if (pathname === "/api/history"   && request.method === "GET")    return json(await getHistory(env));
       if (pathname === "/api/recurring" && request.method === "GET")    return json(await getRecurring(env));
       if (pathname === "/api/recurring" && request.method === "POST") {
