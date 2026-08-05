@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DBA Gold · Overvågning</title>
+  <link rel="stylesheet" href="/watchlist.css" />
+  <script src="/watchlist.js" defer></script>
+</head>
+<body>
+  <header>
+    <div class="brand">DBA <span>Gold</span></div>
+    <div class="header-title">Overvågning</div>
+    <a class="header-link" href="/">Analyse</a>
+    <a class="header-link" href="/cdn-cgi/access/logout">Log ud</a>
+  </header>
+
+  <main>
+    <section class="card create-card">
+      <h1 class="section-title">Ny overvågning</h1>
+      <div class="row template-row">
+        <button class="btn secondary small" type="button" id="motorcycleTemplate">🏍 Motorcykel-skabelon</button>
+      </div>
+      <form id="createForm">
+        <div class="grid">
+          <div>
+            <label for="name">Navn</label>
+            <input id="name" required placeholder="Motorcykeljagten" maxlength="100" />
+          </div>
+          <div>
+            <label for="url">DBA-søgelink</label>
+            <input id="url" required type="url" placeholder="https://www.dba.dk/..." />
+          </div>
+          <div>
+            <label for="criteria">Kriterier</label>
+            <textarea id="criteria" required placeholder="Beskriv hvad systemet skal prioritere og nedprioritere."></textarea>
+          </div>
+          <div class="grid two">
+            <div>
+              <label for="maxPrice">Maks. pris (kr.)</label>
+              <input id="maxPrice" type="number" min="0" step="500" placeholder="40000" />
+            </div>
+            <div>
+              <label for="interval">Kørsel</label>
+              <select id="interval">
+                <option value="daily">Dagligt</option>
+                <option value="weekly">Ugentligt</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label for="model">Analysemodel</label>
+            <select id="model">
+              <option value="claude-haiku-4-5-20251001">Haiku 4.5 — billigst</option>
+              <option value="claude-sonnet-4-6" selected>Sonnet 4.6 — balanceret</option>
+              <option value="claude-opus-4-8">Opus 4.8 — grundigst</option>
+            </select>
+          </div>
+          <button class="btn" id="createBtn" type="submit">Opret overvågning</button>
+          <div class="status" id="createStatus" role="status"></div>
+        </div>
+      </form>
+      <p class="hint">Første kørsel opretter en baseline. Senere analyseres kun nye annoncer, tilbagevendte annoncer og prisfald.</p>
+    </section>
+
+    <section class="card profiles-card">
+      <div class="row profiles-heading">
+        <h2 class="section-title">Profiler</h2>
+        <button class="btn secondary small" id="refreshBtn">Opdater</button>
+      </div>
+      <div class="status" id="listStatus" role="status"></div>
+      <div class="profile-list" id="profileList"></div>
+    </section>
+
+    <section class="card" id="detailCard" hidden>
+      <div class="detail-head">
+        <div class="detail-title">
+          <h2 id="detailName"></h2>
+          <div id="detailMeta"></div>
+        </div>
+        <button class="btn small" id="runBtn">Kør nu</button>
+        <button class="btn secondary small" id="toggleBtn"></button>
+        <button class="btn danger small" id="deleteBtn">Slet</button>
+      </div>
+      <div class="status" id="detailStatus" role="status"></div>
+      <div class="stats" id="detailStats"></div>
+      <div class="analysis" id="analysis"></div>
+      <div class="filters" id="filters"></div>
+      <div class="listing-list" id="listingList"></div>
+    </section>
+  </main>
+</body>
+</html>

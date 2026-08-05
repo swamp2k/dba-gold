@@ -2,7 +2,7 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "dba-gold",
   "main": "src/index.ts",
-  "compatibility_date": "2025-01-01",
+  "compatibility_date": "2026-08-05",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": "./public",
