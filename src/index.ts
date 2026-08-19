@@ -13,8 +13,15 @@ import {
 import { handleSmartAnalyze } from "./smart";
 import { doWatchProfiles, routeWatchlists } from "./watch";
 
-async function serveMainPage(request: Request, env: Env): Promise<Response> {
-  const response = await env.ASSETS.fetch(request);
+function assetRequest(request: Request, pathname: string): Request {
+  const url = new URL(request.url);
+  url.pathname = pathname;
+  url.search = "";
+  return new Request(url.toString(), request);
+}
+
+async function serveManualPage(request: Request, env: Env): Promise<Response> {
+  const response = await env.ASSETS.fetch(assetRequest(request, "/index.html"));
   if (!response.ok || request.method === "HEAD") return response;
 
   const contentType = response.headers.get("content-type") ?? "";
@@ -22,10 +29,15 @@ async function serveMainPage(request: Request, env: Env): Promise<Response> {
 
   const html = await response.text();
   const marker = '<div class="tagline">AI-powered DBA.dk listing analyzer</div>';
-  const smartLink = '<a class="logout-btn" href="/smart.html">✨ Smart Search</a>';
-  const integrated = html.includes(marker) && !html.includes('href="/smart.html"')
+  const smartLink = '<a class="logout-btn" href="/">✨ Smart Search</a>';
+  let integrated = html.includes(marker) && !html.includes('href="/">✨ Smart Search</a>')
     ? html.replace(marker, `${marker}\n    ${smartLink}`)
     : html;
+
+  integrated = integrated.replace(
+    '\n            <option value="claude-opus-4-8">Opus 4.8 — Most capable</option>',
+    "",
+  );
 
   const headers = new Headers(response.headers);
   headers.delete("content-length");
@@ -70,8 +82,12 @@ export default {
       return json({ error: "Not found" }, 404);
     }
 
-    if ((pathname === "/" || pathname === "/index.html") && (request.method === "GET" || request.method === "HEAD")) {
-      return serveMainPage(request, env);
+    if ((request.method === "GET" || request.method === "HEAD") && (pathname === "/" || pathname === "/index.html")) {
+      return env.ASSETS.fetch(assetRequest(request, "/smart.html"));
+    }
+
+    if ((request.method === "GET" || request.method === "HEAD") && pathname === "/manual.html") {
+      return serveManualPage(request, env);
     }
 
     return env.ASSETS.fetch(request);
