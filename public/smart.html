@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DBA Gold — Smart Search</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold: #FFD700; --gold-dim: #b89a00; --bg: #0d0d1a; --card: #131327;
+      --border: #252545; --text: #dde0ee; --muted: #777996; --input-bg: #0a0a16;
+      --green: #3ecf6e; --red: #f05656;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; line-height: 1.6; }
+    header { background: linear-gradient(135deg, #0f0f20, #141430); border-bottom: 1px solid var(--gold-dim); padding: 1rem 2rem; display:flex; align-items:center; gap:1rem; }
+    .logo { font-size:1.6rem; font-weight:800; color:var(--gold); }
+    .logo span { color:#fff; }
+    .tagline { color:var(--muted); font-size:.82rem; flex:1; }
+    .nav { color:var(--muted); border:1px solid var(--border); border-radius:7px; padding:.35rem .75rem; text-decoration:none; font-size:.82rem; }
+    .nav:hover { border-color:var(--gold); color:var(--gold); }
+    main { max-width:900px; margin:1.75rem auto; padding:0 1.25rem 3rem; display:flex; flex-direction:column; gap:1.1rem; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:1.5rem; }
+    h1 { font-size:1.25rem; color:#fff; margin-bottom:.3rem; }
+    .intro { color:var(--muted); font-size:.9rem; margin-bottom:1.2rem; }
+    label { display:block; font-size:.76rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--gold); margin-bottom:.4rem; }
+    textarea, select { width:100%; background:var(--input-bg); border:1px solid var(--border); border-radius:9px; color:var(--text); padding:.8rem 1rem; font:inherit; outline:none; }
+    textarea { min-height:125px; resize:vertical; }
+    textarea:focus, select:focus { border-color:var(--gold); }
+    .examples { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.55rem; }
+    .chip { background:var(--input-bg); border:1px solid var(--border); border-radius:20px; color:var(--muted); padding:.3rem .7rem; font:inherit; font-size:.77rem; cursor:pointer; }
+    .chip:hover { border-color:var(--gold); color:var(--gold); }
+    .actions { display:flex; align-items:flex-end; gap:.75rem; margin-top:1rem; }
+    .model { width:230px; }
+    .btn { margin-left:auto; border:0; border-radius:9px; padding:.72rem 1.35rem; background:linear-gradient(135deg,#f5c800,#e6a200); color:#0d0d1a; font-weight:800; font-size:.95rem; cursor:pointer; }
+    .btn:disabled { opacity:.45; cursor:not-allowed; }
+    .badge { font-size:.73rem; font-weight:600; padding:.22rem .65rem; border-radius:20px; background:#1c1c36; color:var(--muted); }
+    .badge.loading, .badge.done { background:#0d2a1a; color:var(--green); }
+    .badge.error { background:#2a0d0d; color:var(--red); }
+    .head { display:flex; align-items:center; justify-content:space-between; margin-bottom:.85rem; }
+    .title { font-size:.76rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--gold); }
+    #plan { display:none; }
+    #plan.visible { display:block; }
+    .plan-summary { color:#fff; margin-bottom:.75rem; }
+    .meta { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; margin-bottom:.9rem; }
+    .meta-box { background:var(--input-bg); border:1px solid var(--border); border-radius:8px; padding:.7rem .85rem; }
+    .meta-label { color:var(--muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; }
+    .meta-value { color:var(--text); font-size:.88rem; margin-top:.15rem; }
+    .query-list { display:flex; flex-wrap:wrap; gap:.4rem; }
+    .query { background:#19192f; border:1px solid var(--border); border-radius:7px; padding:.35rem .6rem; font-size:.8rem; color:#c8cada; text-decoration:none; }
+    .query:hover { border-color:var(--gold); color:var(--gold); }
+    .results { min-height:150px; font-size:.93rem; line-height:1.75; word-break:break-word; }
+    .placeholder { color:var(--muted); font-style:italic; }
+    .results h1,.results h2,.results h3 { color:var(--gold); margin:1rem 0 .35rem; line-height:1.3; }
+    .results h1 { font-size:1.15rem; } .results h2 { font-size:1rem; } .results h3 { font-size:.95rem; }
+    .results p { margin:.5rem 0; } .results ul,.results ol { padding-left:1.4rem; margin:.35rem 0; }
+    .results strong { color:#fff; } .results a { color:var(--gold); }
+    .cursor { display:inline-block; width:2px; height:1.1em; background:var(--gold); margin-left:2px; vertical-align:text-bottom; animation:blink .85s step-end infinite; }
+    @keyframes blink { 50% { opacity:0; } }
+    @media (max-width:650px) { header { padding:1rem; } .tagline { display:none; } main { padding:0 .75rem 2rem; } .meta { grid-template-columns:1fr; } .actions { align-items:stretch; flex-direction:column; } .model { width:100%; } .btn { margin-left:0; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">DBA <span>Gold</span></div>
+    <div class="tagline">Natural-language product search</div>
+    <a class="nav" href="/">Manual search</a>
+    <a class="nav" href="/watchlist.html">Watchlists</a>
+  </header>
+
+  <main>
+    <div class="card">
+      <h1>Hvad leder du efter?</h1>
+      <p class="intro">Beskriv behovet normalt. DBA Gold omsætter det til flere konkrete DBA-søgninger, samler annoncerne og vurderer dem som ét resultat.</p>
+      <label for="request">Beskriv dit køb</label>
+      <textarea id="request" placeholder="Jeg vil have et smartwatch til Android. God batteritid er vigtigere end apps. Ikke kæmpestort, helst Garmin eller Samsung, maks 1800 kr. Brugt er fint."></textarea>
+      <div class="examples">
+        <button class="chip" data-example="Jeg vil have et smartwatch til Android. God batteritid er vigtigere end apps. Ikke kæmpestort, helst Garmin eller Samsung, maks 1800 kr. Brugt er fint.">Smartwatch</button>
+        <button class="chip" data-example="Jeg vil have en brugt gaming GPU som er en tydelig opgradering fra GTX 1070. Maks 1800 kr, og jeg vil hellere have god value end den nyeste generation.">GPU upgrade</button>
+        <button class="chip" data-example="Find en god robotplæneklipper til cirka 500 m2 have. Helst uden dyrt abonnement, brugt er fint, maks 3500 kr.">Robotplæneklipper</button>
+      </div>
+      <div class="actions">
+        <div class="model">
+          <label for="model">Analysemodel</label>
+          <select id="model">
+            <option value="claude-haiku-4-5-20251001">Haiku 4.5 — Fast</option>
+            <option value="claude-sonnet-4-6" selected>Sonnet 4.6 — Balanced</option>
+            <option value="claude-opus-4-8">Opus 4.8 — Deep</option>
+          </select>
+        </div>
+        <button class="btn" id="searchBtn">✨ Find de bedste køb</button>
+      </div>
+    </div>
+
+    <div class="card" id="plan">
+      <div class="head"><div class="title">AI search plan</div></div>
+      <div class="plan-summary" id="planSummary"></div>
+      <div class="meta">
+        <div class="meta-box"><div class="meta-label">Must-have</div><div class="meta-value" id="mustHave">—</div></div>
+        <div class="meta-box"><div class="meta-label">Nice-to-have</div><div class="meta-value" id="niceToHave">—</div></div>
+        <div class="meta-box"><div class="meta-label">Undgå</div><div class="meta-value" id="avoid">—</div></div>
+        <div class="meta-box"><div class="meta-label">Budget</div><div class="meta-value" id="budget">—</div></div>
+      </div>
+      <label>DBA-søgninger</label>
+      <div class="query-list" id="queries"></div>
+    </div>
+
+    <div class="card">
+      <div class="head">
+        <div class="title">Resultat</div>
+        <div class="badge" id="badge">Ready</div>
+      </div>
+      <div class="results" id="results"><span class="placeholder">Beskriv hvad du leder efter ovenfor.</span></div>
+    </div>
+  </main>
+
+<script>
+  const requestEl = document.getElementById('request');
+  const modelEl = document.getElementById('model');
+  const searchBtn = document.getElementById('searchBtn');
+  const results = document.getElementById('results');
+  const badge = document.getElementById('badge');
+
+  document.querySelectorAll('[data-example]').forEach(btn => btn.addEventListener('click', () => {
+    requestEl.value = btn.dataset.example;
+    requestEl.focus();
+  }));
+
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runSmartSearch();
+  });
+  searchBtn.addEventListener('click', runSmartSearch);
+
+  function setStatus(text, state = 'loading') {
+    badge.textContent = text;
+    badge.className = `badge ${state}`;
+  }
+
+  function listText(items) {
+    return Array.isArray(items) && items.length ? items.join(' · ') : '—';
+  }
+
+  function showPlan(plan) {
+    document.getElementById('plan').classList.add('visible');
+    document.getElementById('planSummary').textContent = plan.summary || plan.intent || '';
+    document.getElementById('mustHave').textContent = listText(plan.mustHave);
+    document.getElementById('niceToHave').textContent = listText(plan.niceToHave);
+    document.getElementById('avoid').textContent = listText(plan.avoid);
+    document.getElementById('budget').textContent = plan.maxPrice ? `${Number(plan.maxPrice).toLocaleString('da-DK')} kr.` : 'Ikke angivet';
+    const q = document.getElementById('queries');
+    q.replaceChildren();
+    (plan.queries || []).forEach((query, i) => {
+      const a = document.createElement('a');
+      a.className = 'query';
+      a.textContent = query;
+      a.href = plan.urls?.[i] || '#';
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      q.appendChild(a);
+    });
+  }
+
+  async function runSmartSearch() {
+    const request = requestEl.value.trim();
+    if (request.length < 5) { alert('Beskriv lige hvad du leder efter først.'); return; }
+
+    searchBtn.disabled = true;
+    document.getElementById('plan').classList.remove('visible');
+    results.innerHTML = '';
+    setStatus('Planlægger…');
+
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    results.appendChild(cursor);
+    let accumulated = '';
+
+    try {
+      const res = await fetch('/api/smart-analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request, model: modelEl.value }),
+      });
+      if (!res.ok) {
+        let message = `Server error ${res.status}`;
+        try { message = (await res.json()).error || message; } catch {}
+        throw new Error(message);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          let ev;
+          try { ev = JSON.parse(line.slice(6)); } catch { continue; }
+          if (ev.type === 'status') {
+            setStatus(ev.message);
+          } else if (ev.type === 'plan') {
+            showPlan(ev.plan);
+          } else if (ev.type === 'text') {
+            accumulated += ev.text;
+            results.innerHTML = marked.parse(accumulated);
+            results.appendChild(cursor);
+          } else if (ev.type === 'done') {
+            cursor.remove();
+            results.innerHTML = marked.parse(accumulated);
+            setStatus('Done', 'done');
+          } else if (ev.type === 'error') {
+            throw new Error(ev.message || 'Unknown server error');
+          }
+        }
+      }
+      cursor.remove();
+      if (accumulated) results.innerHTML = marked.parse(accumulated);
+      if (badge.classList.contains('loading')) setStatus('Done', 'done');
+    } catch (err) {
+      cursor.remove();
+      results.textContent = `⚠ ${err.message || 'Unknown error'}`;
+      setStatus('Error', 'error');
+    } finally {
+      searchBtn.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>
