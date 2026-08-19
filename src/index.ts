@@ -13,6 +13,25 @@ import {
 import { handleSmartAnalyze } from "./smart";
 import { doWatchProfiles, routeWatchlists } from "./watch";
 
+async function serveMainPage(request: Request, env: Env): Promise<Response> {
+  const response = await env.ASSETS.fetch(request);
+  if (!response.ok || request.method === "HEAD") return response;
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("text/html")) return response;
+
+  const html = await response.text();
+  const marker = '<div class="tagline">AI-powered DBA.dk listing analyzer</div>';
+  const smartLink = '<a class="logout-btn" href="/smart.html">✨ Smart Search</a>';
+  const integrated = html.includes(marker) && !html.includes('href="/smart.html"')
+    ? html.replace(marker, `${marker}\n    ${smartLink}`)
+    : html;
+
+  const headers = new Headers(response.headers);
+  headers.delete("content-length");
+  return new Response(integrated, { status: response.status, statusText: response.statusText, headers });
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const { pathname } = new URL(request.url);
@@ -49,6 +68,10 @@ export default {
         return json({ ok: true });
       }
       return json({ error: "Not found" }, 404);
+    }
+
+    if ((pathname === "/" || pathname === "/index.html") && (request.method === "GET" || request.method === "HEAD")) {
+      return serveMainPage(request, env);
     }
 
     return env.ASSETS.fetch(request);
