@@ -107,17 +107,45 @@ function googleSearchUrl(query: string): string {
   return url.toString();
 }
 
+function bingSearchUrl(query: string): string {
+  const url = new URL("https://www.bing.com/search");
+  url.searchParams.set("setlang", "da-DK");
+  url.searchParams.set("cc", "dk");
+  url.searchParams.set("q", query);
+  return url.toString();
+}
+
+function searchMarkdownLooksUsable(markdown: string): boolean {
+  if (markdown.trim().length < 700) return false;
+  const lower = markdown.toLocaleLowerCase("da-DK");
+  return ![
+    "before you continue to google",
+    "unusual traffic",
+    "usædvanlig trafik",
+    "consent.google",
+  ].some(marker => lower.includes(marker));
+}
+
 async function renderMarkdown(browser: BrowserBinding, url: string): Promise<string> {
-  const response = await browser.quickAction("markdown", {
-    url,
-    gotoOptions: {
-      waitUntil: "domcontentloaded",
-      timeout: 15_000,
-    },
-  });
+  const response = await browser.quickAction("markdown", { url });
   if (!response.ok) throw new Error(`Browser Run returned ${response.status} for retail lookup`);
   const text = await response.text();
   return text.slice(0, MAX_RETAIL_MARKDOWN_CHARS);
+}
+
+async function renderRetailSearch(browser: BrowserBinding, query: string): Promise<{ sourceUrl: string; markdown: string }> {
+  const googleUrl = googleSearchUrl(query);
+  try {
+    const markdown = await renderMarkdown(browser, googleUrl);
+    if (searchMarkdownLooksUsable(markdown)) return { sourceUrl: googleUrl, markdown };
+  } catch (error) {
+    console.error(JSON.stringify({ event: "retail_google_lookup_failed", query, error: String(error) }));
+  }
+
+  const bingUrl = bingSearchUrl(query);
+  const markdown = await renderMarkdown(browser, bingUrl);
+  if (!searchMarkdownLooksUsable(markdown)) throw new Error("No usable retail search result page returned");
+  return { sourceUrl: bingUrl, markdown };
 }
 
 export async function researchRetailPrices(
@@ -146,9 +174,8 @@ export async function researchRetailPrices(
   for (let start = 0; start < queries.length; start += RETAIL_QUERY_BATCH_SIZE) {
     const batch = queries.slice(start, start + RETAIL_QUERY_BATCH_SIZE);
     const rendered = await Promise.all(batch.map(async query => {
-      const sourceUrl = googleSearchUrl(query);
       try {
-        const markdown = await renderMarkdown(browser, sourceUrl);
+        const { sourceUrl, markdown } = await renderRetailSearch(browser, query);
         return { query, sourceUrl, markdown } satisfies RetailResearchResult;
       } catch (error) {
         console.error(JSON.stringify({ event: "retail_lookup_failed", query, error: String(error) }));
