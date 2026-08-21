@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { Env, Listing } from "./shared";
-import { SmartSearchPlan } from "./smart";
+import type { Env, Listing } from "./shared";
+import type { SmartSearchPlan } from "./smart";
 
 const MAX_RETAIL_QUERIES = 8;
 const RETAIL_QUERY_BATCH_SIZE = 2;
@@ -103,7 +103,7 @@ function googleSearchUrl(query: string): string {
   const url = new URL("https://www.google.com/search");
   url.searchParams.set("hl", "da");
   url.searchParams.set("gl", "dk");
-  url.searchParams.set("q", `${query} (Prisjagt OR PriceRunner OR Ryobi OR Bauhaus OR Proshop OR Homeshop OR Davidsen OR XL-BYG)`);
+  url.searchParams.set("q", query);
   return url.toString();
 }
 
