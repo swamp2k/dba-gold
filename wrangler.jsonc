@@ -9,6 +9,9 @@
     "binding": "ASSETS",
     "run_worker_first": true
   },
+  "browser": {
+    "binding": "BROWSER"
+  },
   "kv_namespaces": [
     {
       "binding": "DBA_GOLD_DATA",
