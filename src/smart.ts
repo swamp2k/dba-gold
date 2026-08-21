@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { fetchAllListings, listingsBlock } from "./dba";
+import { researchRetailPrices } from "./retail";
 import { addHistory, CORS, DEFAULT_MODEL, Env, errorMessage, Listing, normalizeModel, readJson } from "./shared";
 
 const PLANNER_MODEL = DEFAULT_MODEL;
@@ -222,19 +223,30 @@ export async function handleSmartAnalyze(request: Request, env: Env, ctx: Execut
         await send({ type: "status", message: `Fandt ${listings.length} unikke annoncer. AI vurderer dem nu…` });
       }
 
+      const retailResearch = await researchRetailPrices(env, client, requestText, plan, candidates, send);
+      await send({ type: "status", message: "Sammenholder DBA-priser med de fundne nypriser…" });
+
       const stream = client.messages.stream({
         model,
         max_tokens: 4096,
         system: `You are DBA Gold Smart Search, an expert buyer's assistant for DBA.dk.
 
-The user described a product need in ordinary language. A separate planner translated that into several DBA searches. You receive the plan plus deduplicated search-result listings containing only title, price and ID.
+The user described a product need in ordinary language. A separate planner translated that into several DBA searches. You receive the plan plus deduplicated search-result listings containing only title, price and ID. You ALSO receive live web research for current Danish new retail prices.
 
-Be conservative about facts: never claim a specific listing has a feature unless it is explicit in the title. You MAY use general product-model knowledge to explain why a model family appears promising, but clearly distinguish model-level knowledge from facts verified in a specific listing. Tell the user what must be checked in the full ad.
+Use the retail web research actively when the user's request depends on value, discount, savings, normal price, or new price. For each discount claim:
+- Match the DBA listing to the SAME exact model/variant as the retail evidence. Do not compare a bare tool with a battery kit, a different generation, or a similarly named product.
+- Prefer current Danish price-comparison or retailer prices over remembered/model-level prices.
+- Calculate discount as (current new price - DBA price) / current new price.
+- State the new-price evidence used and the resulting approximate percentage.
+- If the exact model cannot be matched to reliable current retail evidence, say it is unverified instead of inventing a price.
+- Search-result snippets are evidence but can be stale; when evidence conflicts, be conservative and explain the uncertainty.
+
+Be conservative about listing facts: never claim a specific listing has a feature unless it is explicit in the title. You MAY use general product-model knowledge to explain why a model family appears promising, but clearly distinguish model-level knowledge from facts verified in a specific listing. Tell the user what must be checked in the full ad.
 
 Rank the best candidates against must-haves, nice-to-haves, avoid rules and budget. Prefer a short useful shortlist over a giant dump. Link recommended listings as https://www.dba.dk/recommerce/forsale/item/<ID>. Respond in the same language as the user's request.`,
         messages: [{
           role: "user",
-          content: `${requestText}\n\n--- SEARCH PLAN ---\n${planBlock(plan)}\n\n--- MERGED DBA RESULTS ---\nCombined result count reported across searches before deduplication: ${reportedTotal}\nUnique listings after deduplication and explicit price filtering: ${listings.length}\n\n${listingsBlock("Multiple AI-planned DBA searches", null, candidates)}`,
+          content: `${requestText}\n\n--- SEARCH PLAN ---\n${planBlock(plan)}\n\n--- MERGED DBA RESULTS ---\nCombined result count reported across searches before deduplication: ${reportedTotal}\nUnique listings after deduplication and explicit price filtering: ${listings.length}\n\n${listingsBlock("Multiple AI-planned DBA searches", null, candidates)}\n\n--- CURRENT RETAIL PRICE WEB RESEARCH ---\n${retailResearch}`,
         }],
       }) as unknown as AsyncIterable<unknown>;
 
