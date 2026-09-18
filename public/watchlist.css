@@ -23,29 +23,6 @@ body {
 }
 button, input, textarea, select { font: inherit; }
 a { color: var(--gold); }
-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  gap: .8rem;
-  padding: .85rem 1rem;
-  background: rgba(13, 13, 26, .95);
-  border-bottom: 1px solid var(--gold-dark);
-  backdrop-filter: blur(10px);
-}
-.brand { color: var(--gold); font-size: 1.2rem; font-weight: 850; white-space: nowrap; }
-.brand span { color: #fff; }
-.header-title { color: var(--muted); font-size: .82rem; flex: 1; }
-.header-link {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: .38rem .7rem;
-  color: var(--text);
-  text-decoration: none;
-  font-size: .8rem;
-}
 main {
   width: min(1180px, 100%);
   margin: 0 auto;
@@ -181,6 +158,6 @@ textarea { min-height: 130px; resize: vertical; }
   main { grid-template-columns: 360px minmax(0, 1fr); align-items: start; }
   .create-card { grid-column: 1; }
   .profiles-card { grid-column: 1; }
-  #detailCard { grid-column: 2; grid-row: 1 / span 2; position: sticky; top: 78px; max-height: calc(100vh - 92px); overflow: auto; }
+  #detailCard { grid-column: 2; grid-row: 1 / span 2; position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
   .grid.two { grid-template-columns: 1fr 1fr; }
 }

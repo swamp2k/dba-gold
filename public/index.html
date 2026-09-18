@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DBA Gold</title>
+  <title>DBA</title>
+  <link rel="stylesheet" href="/nav.css" />
   <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -23,23 +24,6 @@
     }
 
     body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; line-height: 1.6; }
-
-    /* ── Header ── */
-    header {
-      background: linear-gradient(135deg, #0f0f20, #141430);
-      border-bottom: 1px solid var(--gold-dim);
-      padding: 1rem 2rem;
-      display: flex; align-items: center; gap: 1rem;
-    }
-    .logo { font-size: 1.6rem; font-weight: 800; color: var(--gold); text-shadow: 0 0 24px rgba(255,215,0,.3); }
-    .logo span { color: #fff; }
-    .tagline { color: var(--muted); font-size: 0.82rem; flex: 1; }
-    .logout-btn {
-      background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--muted);
-      padding: 0.3rem 0.8rem; font-size: 0.82rem; cursor: pointer; font-family: inherit; transition: border-color .15s, color .15s;
-      text-decoration: none; display: inline-block;
-    }
-    .logout-btn:hover { border-color: var(--red); color: var(--red); }
 
     /* ── Layout ── */
     main { max-width: 860px; margin: 1.75rem auto; padding: 0 1.25rem; display: flex; flex-direction: column; gap: 1.1rem; }
@@ -177,10 +161,17 @@
 
 <!-- ══ Main app ══════════════════════════════════════════ -->
 <div id="app">
-  <header>
+  <header class="app-header">
     <div class="logo">DBA <span>Gold</span></div>
     <div class="tagline">AI-powered DBA.dk listing analyzer</div>
-    <a class="logout-btn" href="/cdn-cgi/access/logout">Log out</a>
+    <nav class="app-nav">
+      <a href="/smart.html">DBA Smart</a>
+      <a href="/manual.html" class="active">DBA</a>
+      <a href="/watchlist.html">DBA Monitor</a>
+      <a href="/itemwatch.html">Watch</a>
+      <a href="/webwatch.html">Web Watch</a>
+    </nav>
+    <a class="app-logout" href="/cdn-cgi/access/logout">Log out</a>
   </header>
 
   <main>

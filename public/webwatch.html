@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Watch</title>
+  <link rel="stylesheet" href="/nav.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold: #FFD700; --gold-dim: #b89a00; --bg: #0d0d1a; --card: #131327;
+      --border: #252545; --text: #dde0ee; --muted: #777996;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; line-height: 1.6; }
+    main { max-width: 900px; margin: 1.75rem auto; padding: 0 1.25rem 3rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1.75rem; }
+    .eyebrow { font-size: .76rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); margin-bottom: .5rem; }
+    h1 { font-size: 1.3rem; color: #fff; margin-bottom: .6rem; }
+    p { color: var(--muted); font-size: .93rem; margin-bottom: .9rem; max-width: 60ch; }
+    ul { color: var(--muted); font-size: .9rem; padding-left: 1.3rem; margin-bottom: .9rem; }
+    li { margin: .3rem 0; }
+    strong { color: var(--text); }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo">DBA <span>Gold</span></div>
+    <div class="tagline">Bred søgning efter gode tilbud på hele nettet</div>
+    <nav class="app-nav">
+      <a href="/smart.html">DBA Smart</a>
+      <a href="/manual.html">DBA</a>
+      <a href="/watchlist.html">DBA Monitor</a>
+      <a href="/itemwatch.html">Watch</a>
+      <a href="/webwatch.html" class="active">Web Watch</a>
+    </nav>
+    <a class="app-logout" href="/cdn-cgi/access/logout">Log ud</a>
+  </header>
+
+  <main>
+    <div class="card">
+      <div class="eyebrow">Endnu ikke bygget</div>
+      <h1>Web Watch</h1>
+      <p>
+        Denne tilstand er tænkt til frit formulerede kriterier uden en fast kilde — fx
+        <strong>"nedsat pool, 4,5 m diameter"</strong> — hvor systemet selv søger relevante
+        danske sider igennem, i stedet for at overvåge én bestemt butik som <a href="/itemwatch.html">Watch</a> gør.
+      </p>
+      <p>Planen, groft skitseret:</p>
+      <ul>
+        <li>En AI genererer målrettede søgninger ud fra dine kriterier.</li>
+        <li>Søgeresultater hentes og læses igennem Cloudflares Browser Rendering.</li>
+        <li>Fund gemmes og sammenlignes over tid, ligesom Watch allerede gør for butiksovervågning.</li>
+      </ul>
+      <p>Ikke startet endnu — <a href="/itemwatch.html">Watch</a> (butiksspecifik prisovervågning) er det, der virker i dag.</p>
+    </div>
+  </main>
+</body>
+</html>

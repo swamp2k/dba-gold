@@ -3,17 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DBA Gold · Overvågning</title>
+  <title>DBA Monitor</title>
+  <link rel="stylesheet" href="/nav.css" />
   <link rel="stylesheet" href="/watchlist.css" />
   <script src="/watchlist.js" defer></script>
 </head>
 <body>
-  <header>
-    <div class="brand">DBA <span>Gold</span></div>
-    <div class="header-title">Overvågning</div>
-    <a class="header-link" href="/">Analyse</a>
-    <a class="header-link" href="/itemwatch.html">Item Watch</a>
-    <a class="header-link" href="/cdn-cgi/access/logout">Log ud</a>
+  <header class="app-header">
+    <div class="logo">DBA <span>Gold</span></div>
+    <div class="tagline">DBA-søgninger med løbende overvågning</div>
+    <nav class="app-nav">
+      <a href="/smart.html">DBA Smart</a>
+      <a href="/manual.html">DBA</a>
+      <a href="/watchlist.html" class="active">DBA Monitor</a>
+      <a href="/itemwatch.html">Watch</a>
+      <a href="/webwatch.html">Web Watch</a>
+    </nav>
+    <a class="app-logout" href="/cdn-cgi/access/logout">Log ud</a>
   </header>
 
   <main>

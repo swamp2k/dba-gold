@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DBA Gold — Smart Search</title>
+  <title>DBA Smart</title>
+  <link rel="stylesheet" href="/nav.css" />
   <script src="https://cdn.jsdelivr.net/npm/marked@14/marked.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -13,12 +14,6 @@
       --green: #3ecf6e; --red: #f05656;
     }
     body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; line-height: 1.6; }
-    header { background: linear-gradient(135deg, #0f0f20, #141430); border-bottom: 1px solid var(--gold-dim); padding: 1rem 2rem; display:flex; align-items:center; gap:1rem; }
-    .logo { font-size:1.6rem; font-weight:800; color:var(--gold); }
-    .logo span { color:#fff; }
-    .tagline { color:var(--muted); font-size:.82rem; flex:1; }
-    .nav { color:var(--muted); border:1px solid var(--border); border-radius:7px; padding:.35rem .75rem; text-decoration:none; font-size:.82rem; }
-    .nav:hover { border-color:var(--gold); color:var(--gold); }
     main { max-width:900px; margin:1.75rem auto; padding:0 1.25rem 3rem; display:flex; flex-direction:column; gap:1.1rem; }
     .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:1.5rem; }
     h1 { font-size:1.25rem; color:#fff; margin-bottom:.3rem; }
@@ -57,16 +52,21 @@
     .results strong { color:#fff; } .results a { color:var(--gold); }
     .cursor { display:inline-block; width:2px; height:1.1em; background:var(--gold); margin-left:2px; vertical-align:text-bottom; animation:blink .85s step-end infinite; }
     @keyframes blink { 50% { opacity:0; } }
-    @media (max-width:650px) { header { padding:1rem; } .tagline { display:none; } main { padding:0 .75rem 2rem; } .meta { grid-template-columns:1fr; } .actions { align-items:stretch; flex-direction:column; } .model { width:100%; } .btn { margin-left:0; } }
+    @media (max-width:650px) { main { padding:0 .75rem 2rem; } .meta { grid-template-columns:1fr; } .actions { align-items:stretch; flex-direction:column; } .model { width:100%; } .btn { margin-left:0; } }
   </style>
 </head>
 <body>
-  <header>
+  <header class="app-header">
     <div class="logo">DBA <span>Gold</span></div>
     <div class="tagline">Natural-language product search</div>
-    <a class="nav" href="/manual.html">Manual search</a>
-    <a class="nav" href="/watchlist.html">Watchlists</a>
-    <a class="nav" href="/itemwatch.html">Item Watch</a>
+    <nav class="app-nav">
+      <a href="/smart.html" class="active">DBA Smart</a>
+      <a href="/manual.html">DBA</a>
+      <a href="/watchlist.html">DBA Monitor</a>
+      <a href="/itemwatch.html">Watch</a>
+      <a href="/webwatch.html">Web Watch</a>
+    </nav>
+    <a class="app-logout" href="/cdn-cgi/access/logout">Log ud</a>
   </header>
 
   <main>

@@ -41,19 +41,10 @@ async function serveManualPage(request: Request, env: Env): Promise<Response> {
   const response = await env.ASSETS.fetch(assetRequest(request, "/"));
   if (request.method === "HEAD") return response;
 
-  return transformHtml(response, html => {
-    const marker = '<div class="tagline">AI-powered DBA.dk listing analyzer</div>';
-    const smartLink = '<a class="logout-btn" href="/">✨ Smart Search</a>';
-    let integrated = html.includes(marker) && !html.includes('href="/">✨ Smart Search</a>')
-      ? html.replace(marker, `${marker}\n    ${smartLink}`)
-      : html;
-
-    integrated = integrated.replace(
-      '\n            <option value="claude-opus-4-8">Opus 4.8 — Most capable</option>',
-      "",
-    );
-    return integrated;
-  });
+  return transformHtml(response, html => html.replace(
+    '\n            <option value="claude-opus-4-8">Opus 4.8 — Most capable</option>',
+    "",
+  ));
 }
 
 const SMART_HISTORY_CSS = `
