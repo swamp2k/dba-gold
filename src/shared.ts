@@ -1,3 +1,7 @@
+import type { Condition } from "./adapters/types";
+
+export type { Condition };
+
 export interface Env {
   ANTHROPIC_API_KEY: string;
   ASSETS: Fetcher;
@@ -90,14 +94,14 @@ export interface WatchProfileInput {
   enabled?: boolean;
 }
 
-export type Condition = "new" | "demo" | "refurb" | "open-box" | "returned" | null;
-export type ItemWatchAdapterName = "maxgaming";
+export type ItemWatchAdapterName = "maxgaming" | "webwatch";
 
 export interface ItemWatch {
   id: string;
   name: string;
   adapter: ItemWatchAdapterName;
-  url: string;
+  url: string | null;
+  criteria: string | null;
   keyword: string | null;
   maxPrice: number | null;
   minDiscountPercent: number | null;
@@ -114,6 +118,7 @@ export interface ItemWatchInput {
   name?: string;
   adapter?: ItemWatchAdapterName;
   url?: string;
+  criteria?: string | null;
   keyword?: string | null;
   maxPrice?: number | string | null;
   minDiscountPercent?: number | string | null;
@@ -161,7 +166,7 @@ export const ITEM_WATCH_KEY = "itemwatch:items";
 export const ITEM_WATCH_STATE_PREFIX = "itemwatch:state:";
 export const ITEM_WATCH_HISTORY_MS = 90 * 24 * 60 * 60 * 1000;
 export const ITEM_WATCH_NEAR_LOW_MARGIN = 0.05;
-export const ITEM_WATCH_ADAPTERS = new Set<ItemWatchAdapterName>(["maxgaming"]);
+export const ITEM_WATCH_ADAPTERS = new Set<ItemWatchAdapterName>(["maxgaming", "webwatch"]);
 
 export const ALLOWED_MODELS = new Set(["claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-opus-4-8"]);
 export const DEFAULT_MODEL = "claude-haiku-4-5-20251001";

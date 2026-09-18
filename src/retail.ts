@@ -1,15 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Env, Listing } from "./shared";
 import type { SmartSearchPlan } from "./smart";
+import { BrowserBinding, cleanQueries, renderSearchResults } from "./websearch";
 
 const MAX_RETAIL_QUERIES = 8;
 const RETAIL_QUERY_BATCH_SIZE = 2;
-const MAX_RETAIL_MARKDOWN_CHARS = 14_000;
 const RETAIL_CANDIDATE_TITLES = 80;
-
-interface BrowserBinding {
-  quickAction(action: string, options: Record<string, unknown>): Promise<Response>;
-}
 
 type BrowserEnv = Env & { BROWSER?: BrowserBinding };
 
@@ -21,22 +17,6 @@ interface RetailResearchResult {
   query: string;
   sourceUrl: string;
   markdown: string;
-}
-
-function cleanQueries(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  const result: string[] = [];
-  const seen = new Set<string>();
-  for (const raw of value) {
-    if (typeof raw !== "string") continue;
-    const query = raw.trim().slice(0, 140);
-    const key = query.toLocaleLowerCase("da-DK");
-    if (!query || seen.has(key)) continue;
-    seen.add(key);
-    result.push(query);
-    if (result.length >= MAX_RETAIL_QUERIES) break;
-  }
-  return result;
 }
 
 function candidateTitleBlock(listings: Listing[]): string {
@@ -96,56 +76,7 @@ Rules:
 
   const toolUse = response.content.find(block => block.type === "tool_use" && block.name === "retail_queries");
   if (!toolUse || toolUse.type !== "tool_use") return [];
-  return cleanQueries((toolUse.input as RetailQueryPlanInput).queries);
-}
-
-function googleSearchUrl(query: string): string {
-  const url = new URL("https://www.google.com/search");
-  url.searchParams.set("hl", "da");
-  url.searchParams.set("gl", "dk");
-  url.searchParams.set("q", query);
-  return url.toString();
-}
-
-function bingSearchUrl(query: string): string {
-  const url = new URL("https://www.bing.com/search");
-  url.searchParams.set("setlang", "da-DK");
-  url.searchParams.set("cc", "dk");
-  url.searchParams.set("q", query);
-  return url.toString();
-}
-
-function searchMarkdownLooksUsable(markdown: string): boolean {
-  if (markdown.trim().length < 700) return false;
-  const lower = markdown.toLocaleLowerCase("da-DK");
-  return ![
-    "before you continue to google",
-    "unusual traffic",
-    "usædvanlig trafik",
-    "consent.google",
-  ].some(marker => lower.includes(marker));
-}
-
-async function renderMarkdown(browser: BrowserBinding, url: string): Promise<string> {
-  const response = await browser.quickAction("markdown", { url });
-  if (!response.ok) throw new Error(`Browser Run returned ${response.status} for retail lookup`);
-  const text = await response.text();
-  return text.slice(0, MAX_RETAIL_MARKDOWN_CHARS);
-}
-
-async function renderRetailSearch(browser: BrowserBinding, query: string): Promise<{ sourceUrl: string; markdown: string }> {
-  const googleUrl = googleSearchUrl(query);
-  try {
-    const markdown = await renderMarkdown(browser, googleUrl);
-    if (searchMarkdownLooksUsable(markdown)) return { sourceUrl: googleUrl, markdown };
-  } catch (error) {
-    console.error(JSON.stringify({ event: "retail_google_lookup_failed", query, error: String(error) }));
-  }
-
-  const bingUrl = bingSearchUrl(query);
-  const markdown = await renderMarkdown(browser, bingUrl);
-  if (!searchMarkdownLooksUsable(markdown)) throw new Error("No usable retail search result page returned");
-  return { sourceUrl: bingUrl, markdown };
+  return cleanQueries((toolUse.input as RetailQueryPlanInput).queries, MAX_RETAIL_QUERIES);
 }
 
 export async function researchRetailPrices(
@@ -175,7 +106,7 @@ export async function researchRetailPrices(
     const batch = queries.slice(start, start + RETAIL_QUERY_BATCH_SIZE);
     const rendered = await Promise.all(batch.map(async query => {
       try {
-        const { sourceUrl, markdown } = await renderRetailSearch(browser, query);
+        const { sourceUrl, markdown } = await renderSearchResults(browser, query);
         return { query, sourceUrl, markdown } satisfies RetailResearchResult;
       } catch (error) {
         console.error(JSON.stringify({ event: "retail_lookup_failed", query, error: String(error) }));

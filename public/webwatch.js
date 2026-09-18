@@ -33,18 +33,19 @@
       return timestamp ? new Date(timestamp).toLocaleString('da-DK') : 'Aldrig';
     }
 
-    function adapterLabel(adapter) {
-      return adapter === 'maxgaming' ? 'MaxGaming.dk' : adapter;
-    }
-
     function conditionLabel(condition) {
-      return { new: 'Ny', demo: 'Demo', refurb: 'Refurbished', 'open-box': 'Open box', returned: 'Retur' }[condition] || '';
+      return { new: 'Ny', demo: 'Demo', refurb: 'Refurbished', 'open-box': 'Open box', returned: 'Retur', used: 'Brugt' }[condition] || '';
     }
 
     function dealLabel(deal) {
       if (deal.reason === 'on_page_discount') return `${deal.discountPercent}% rabat mod normalpris`;
       if (deal.reason === 'historic_low') return 'Historisk lavpris';
       return 'Nær historisk lavpris';
+    }
+
+    function truncate(text, max) {
+      const value = String(text ?? '');
+      return value.length > max ? `${value.slice(0, max - 1)}…` : value;
     }
 
     function setStatus(element, message, error = false) {
@@ -62,8 +63,8 @@
     function formPayload() {
       return {
         name: $('name').value.trim(),
-        adapter: $('adapter').value,
-        url: $('url').value.trim(),
+        adapter: 'webwatch',
+        criteria: $('criteria').value.trim(),
         keyword: $('keyword').value.trim() || null,
         maxPrice: $('maxPrice').value || null,
         minDiscountPercent: $('minDiscountPercent').value || null,
@@ -75,8 +76,7 @@
     function enterEditMode(watch) {
       editingId = watch.id;
       $('name').value = watch.name;
-      $('adapter').value = watch.adapter;
-      $('url').value = watch.url;
+      $('criteria').value = watch.criteria || '';
       $('keyword').value = watch.keyword || '';
       $('maxPrice').value = watch.maxPrice ?? '';
       $('minDiscountPercent').value = watch.minDiscountPercent ?? '';
@@ -92,8 +92,8 @@
       editingId = null;
       $('createForm').reset();
       $('preferredHour').value = '';
-      $('formTitle').textContent = 'Ny item watch';
-      $('createBtn').textContent = 'Opret item watch';
+      $('formTitle').textContent = 'Ny web watch';
+      $('createBtn').textContent = 'Opret web watch';
       $('cancelEditBtn').hidden = true;
     }
 
@@ -142,9 +142,9 @@
     async function loadWatches() {
       setStatus($('listStatus'), 'Henter…');
       try {
-        watches = (await api('/api/itemwatch')).filter(watch => watch.adapter === 'maxgaming');
+        watches = (await api('/api/itemwatch')).filter(watch => watch.adapter === 'webwatch');
         renderWatches();
-        setStatus($('listStatus'), watches.length ? '' : 'Ingen item watches endnu.');
+        setStatus($('listStatus'), watches.length ? '' : 'Ingen web watches endnu.');
         if (selectedId && watches.some(watch => watch.id === selectedId)) await selectWatch(selectedId, false);
       } catch (error) {
         setStatus($('listStatus'), error.message, true);
@@ -160,7 +160,7 @@
               <div class="profile-name">${escapeHtml(watch.name)}</div>
               ${watch.enabled ? '' : '<span class="pill paused">Pause</span>'}
             </div>
-            <div class="profile-meta">${escapeHtml(adapterLabel(watch.adapter))}</div>
+            <div class="profile-meta">${escapeHtml(truncate(watch.criteria, 80))}</div>
             <div class="profile-meta">Senest: ${escapeHtml(formatDate(watch.lastRun))}</div>
             ${watch.lastError ? `<div class="profile-meta" style="color:var(--red)">${escapeHtml(watch.lastError)}</div>` : ''}
             <div class="stats">
@@ -202,7 +202,7 @@
     function renderDetail() {
       const { watch, state } = selectedData;
       $('detailName').textContent = watch.name;
-      $('detailMeta').textContent = `${adapterLabel(watch.adapter)}${watch.keyword ? ` · “${watch.keyword}”` : ''} · Maks. ${watch.maxPrice == null ? 'ikke sat' : formatPrice(watch.maxPrice)} · Min. rabat ${watch.minDiscountPercent == null ? 'ikke sat' : watch.minDiscountPercent + '%'} · ${scheduleLabel(watch)} · Senest ${formatDate(watch.lastRun)}`;
+      $('detailMeta').textContent = `${watch.criteria}${watch.keyword ? ` · “${watch.keyword}”` : ''} · Maks. ${watch.maxPrice == null ? 'ikke sat' : formatPrice(watch.maxPrice)} · Min. rabat ${watch.minDiscountPercent == null ? 'ikke sat' : watch.minDiscountPercent + '%'} · ${scheduleLabel(watch)} · Senest ${formatDate(watch.lastRun)}`;
       $('toggleBtn').textContent = watch.enabled ? 'Sæt på pause' : 'Aktivér';
 
       const products = Object.values(state?.products || {});
@@ -216,7 +216,7 @@
 
     function renderProducts(products, deals) {
       if (!products.length) {
-        $('productList').innerHTML = '<div class="empty">Kør item watch for at oprette en baseline.</div>';
+        $('productList').innerHTML = '<div class="empty">Kør web watch for at oprette en baseline.</div>';
         return;
       }
       const dealByProduct = new Map(deals.map(deal => [deal.productId, deal]));
@@ -243,7 +243,8 @@
               <div class="listing-title">
                 <a href="${escapeHtml(product.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(product.name)}</a>
                 <div class="listing-meta">
-                  ${product.condition ? `${escapeHtml(conditionLabel(product.condition))} · ` : ''}Historisk lav: ${escapeHtml(formatPrice(historicLow))}
+                  ${product.condition ? `${escapeHtml(conditionLabel(product.condition))} · ` : ''}
+                  ${escapeHtml(new URL(product.url).hostname)} · Historisk lav: ${escapeHtml(formatPrice(historicLow))}
                   ${deal ? ` · <span style="color:var(--green)">${escapeHtml(dealLabel(deal))}</span>` : ''}
                 </div>
               </div>
@@ -260,7 +261,7 @@
       if (!selectedId) return;
       const button = $('runBtn');
       button.disabled = true;
-      setStatus($('detailStatus'), 'Henter siden og sammenligner priser…');
+      setStatus($('detailStatus'), 'Genererer søgninger, læser resultater og sammenligner priser… dette kan tage lidt tid.');
       try {
         await api(`/api/itemwatch/${encodeURIComponent(selectedId)}/run`, { method: 'POST', body: '{}' });
         await loadWatches();
@@ -288,7 +289,7 @@
     }
 
     async function deleteSelected() {
-      if (!selectedData || !confirm(`Slet item watch “${selectedData.watch.name}”?`)) return;
+      if (!selectedData || !confirm(`Slet web watch “${selectedData.watch.name}”?`)) return;
       try {
         await api(`/api/itemwatch/${encodeURIComponent(selectedId)}`, { method: 'DELETE' });
         if (editingId === selectedId) exitEditMode();

@@ -1,4 +1,4 @@
-export type Condition = "new" | "demo" | "refurb" | "open-box" | "returned" | null;
+export type Condition = "new" | "demo" | "refurb" | "open-box" | "returned" | "used" | null;
 
 export interface AdapterListing {
   id: string;

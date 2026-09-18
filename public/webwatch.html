@@ -5,22 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Web Watch</title>
   <link rel="stylesheet" href="/nav.css" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --gold: #FFD700; --gold-dim: #b89a00; --bg: #0d0d1a; --card: #131327;
-      --border: #252545; --text: #dde0ee; --muted: #777996;
-    }
-    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; line-height: 1.6; }
-    main { max-width: 900px; margin: 1.75rem auto; padding: 0 1.25rem 3rem; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1.75rem; }
-    .eyebrow { font-size: .76rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); margin-bottom: .5rem; }
-    h1 { font-size: 1.3rem; color: #fff; margin-bottom: .6rem; }
-    p { color: var(--muted); font-size: .93rem; margin-bottom: .9rem; max-width: 60ch; }
-    ul { color: var(--muted); font-size: .9rem; padding-left: 1.3rem; margin-bottom: .9rem; }
-    li { margin: .3rem 0; }
-    strong { color: var(--text); }
-  </style>
+  <link rel="stylesheet" href="/watchlist.css" />
+  <script src="/webwatch.js" defer></script>
 </head>
 <body>
   <header class="app-header">
@@ -37,22 +23,89 @@
   </header>
 
   <main>
-    <div class="card">
-      <div class="eyebrow">Endnu ikke bygget</div>
-      <h1>Web Watch</h1>
-      <p>
-        Denne tilstand er tænkt til frit formulerede kriterier uden en fast kilde — fx
-        <strong>"nedsat pool, 4,5 m diameter"</strong> — hvor systemet selv søger relevante
-        danske sider igennem, i stedet for at overvåge én bestemt butik som <a href="/itemwatch.html">Watch</a> gør.
+    <section class="card create-card">
+      <h1 class="section-title" id="formTitle">Ny web watch</h1>
+      <form id="createForm">
+        <div class="grid">
+          <div>
+            <label for="name">Navn</label>
+            <input id="name" required placeholder="Nedsat pool, 4,5 m" maxlength="100" />
+          </div>
+          <div>
+            <label for="criteria">Kriterier</label>
+            <textarea id="criteria" required placeholder="Beskriv hvad der skal findes, fx: nedsat pool med 4,5 m diameter, gerne med pumpe inkluderet."></textarea>
+          </div>
+          <div>
+            <label for="keyword">Nøgleord (valgfri)</label>
+            <input id="keyword" placeholder="fx intex" maxlength="100" />
+          </div>
+          <div class="grid two">
+            <div>
+              <label for="maxPrice">Maks. pris (kr.)</label>
+              <input id="maxPrice" type="number" min="0" step="50" placeholder="valgfri" />
+            </div>
+            <div>
+              <label for="minDiscountPercent">Min. rabat (%)</label>
+              <input id="minDiscountPercent" type="number" min="1" max="99" step="5" placeholder="valgfri" />
+            </div>
+          </div>
+          <div class="grid two">
+            <div>
+              <label for="interval">Kørsel</label>
+              <select id="interval">
+                <option value="daily">Dagligt</option>
+                <option value="weekly">Ugentligt</option>
+              </select>
+            </div>
+            <div>
+              <label for="preferredHour">Foretrukket tidspunkt (UTC)</label>
+              <select id="preferredHour"></select>
+            </div>
+          </div>
+          <div class="row">
+            <button class="btn" id="createBtn" type="submit">Opret web watch</button>
+            <button class="btn secondary" id="cancelEditBtn" type="button" hidden>Annullér redigering</button>
+          </div>
+          <div class="status" id="createStatus" role="status"></div>
+        </div>
+      </form>
+      <p class="hint">
+        Ingen fast butik — en AI genererer søgninger ud fra dine kriterier, læser resultatsiderne (kun .dk-sider
+        medtages) og udtrækker konkrete annoncer med pris. Min. rabat virker kun når en side selv viser en
+        normalpris ved siden af; ellers bruges produktets eget historiske lavpunkt som reserveløsning, når der er
+        opbygget nok historik. Dyrere og langsommere end Watch, da hvert tjek bruger AI og browser-rendering —
+        overvej ugentlig kørsel frem for daglig, hvis det ikke haster.
       </p>
-      <p>Planen, groft skitseret:</p>
-      <ul>
-        <li>En AI genererer målrettede søgninger ud fra dine kriterier.</li>
-        <li>Søgeresultater hentes og læses igennem Cloudflares Browser Rendering.</li>
-        <li>Fund gemmes og sammenlignes over tid, ligesom Watch allerede gør for butiksovervågning.</li>
-      </ul>
-      <p>Ikke startet endnu — <a href="/itemwatch.html">Watch</a> (butiksspecifik prisovervågning) er det, der virker i dag.</p>
-    </div>
+    </section>
+
+    <section class="card profiles-card">
+      <div class="row profiles-heading">
+        <h2 class="section-title">Web watches</h2>
+        <button class="btn secondary small" id="refreshBtn">Opdater</button>
+      </div>
+      <div class="status" id="listStatus" role="status"></div>
+      <div class="profile-list" id="watchList"></div>
+    </section>
+
+    <section class="card" id="detailCard" hidden>
+      <div class="detail-head">
+        <div class="detail-title">
+          <h2 id="detailName"></h2>
+          <div id="detailMeta"></div>
+        </div>
+        <button class="btn small" id="runBtn">Kør nu</button>
+        <button class="btn secondary small" id="editBtn">Rediger</button>
+        <button class="btn secondary small" id="toggleBtn"></button>
+        <button class="btn danger small" id="deleteBtn">Slet</button>
+      </div>
+      <div class="status" id="detailStatus" role="status"></div>
+      <div class="stats" id="detailStats"></div>
+      <label class="row" style="margin:.6rem 0 0; cursor:pointer;">
+        <input type="checkbox" id="onlyMatchesToggle" style="width:auto;" />
+        <span style="color:var(--muted); font-size:.82rem;">Vis kun fund</span>
+      </label>
+      <div class="listing-list" id="productList"></div>
+    </section>
   </main>
 </body>
 </html>

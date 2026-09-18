@@ -1,5 +1,6 @@
 import { scrape as scrapeMaxgaming } from "./adapters/maxgaming";
 import { AdapterListing } from "./adapters/types";
+import { scrape as scrapeWebwatch } from "./adapters/webwatch";
 import {
   Env,
   errorMessage,
@@ -22,8 +23,15 @@ import {
   saveItemWatches,
 } from "./shared";
 
-async function runAdapter(watch: ItemWatch): Promise<AdapterListing[]> {
-  if (watch.adapter === "maxgaming") return scrapeMaxgaming(watch.url);
+async function runAdapter(env: Env, watch: ItemWatch): Promise<AdapterListing[]> {
+  if (watch.adapter === "maxgaming") {
+    if (!watch.url) throw new Error("Denne overvågning mangler en side-URL.");
+    return scrapeMaxgaming(watch.url);
+  }
+  if (watch.adapter === "webwatch") {
+    if (!watch.criteria) throw new Error("Denne overvågning mangler kriterier.");
+    return scrapeWebwatch(watch.criteria, env);
+  }
   throw new Error(`Unknown adapter: ${watch.adapter}`);
 }
 
@@ -85,7 +93,7 @@ export function buildItemWatchState(
 async function runItemWatch(env: Env, watch: ItemWatch): Promise<ItemWatchState> {
   const now = Date.now();
   const previous = await getItemWatchState(env, watch.id);
-  const listings = await runAdapter(watch);
+  const listings = await runAdapter(env, watch);
   if (listings.length === 0) {
     throw new Error(`${watch.adapter} returned no listings. Existing baseline was not changed.`);
   }
@@ -114,11 +122,26 @@ function normalizeItemWatchInput(body: ItemWatchInput, existing?: ItemWatch): {
   } else if (!existing) return { error: "adapter is required" };
 
   if (body.url !== undefined) {
-    let url: URL;
-    try { url = new URL(body.url.trim()); } catch { return { error: "url must be a valid https URL" }; }
-    if (url.protocol !== "https:") return { error: "url must be a valid https URL" };
-    patch.url = url.toString();
-  } else if (!existing) return { error: "url is required" };
+    const trimmed = body.url.trim();
+    if (!trimmed) {
+      patch.url = null;
+    } else {
+      let url: URL;
+      try { url = new URL(trimmed); } catch { return { error: "url must be a valid https URL" }; }
+      if (url.protocol !== "https:") return { error: "url must be a valid https URL" };
+      patch.url = url.toString();
+    }
+  }
+  if (body.criteria !== undefined) {
+    const trimmed = (body.criteria ?? "").trim();
+    patch.criteria = trimmed ? trimmed.slice(0, 2000) : null;
+  }
+
+  const effectiveAdapter = patch.adapter ?? existing?.adapter;
+  const effectiveUrl = patch.url !== undefined ? patch.url : existing?.url ?? null;
+  const effectiveCriteria = patch.criteria !== undefined ? patch.criteria : existing?.criteria ?? null;
+  if (effectiveAdapter === "maxgaming" && !effectiveUrl) return { error: "url is required for the MaxGaming adapter" };
+  if (effectiveAdapter === "webwatch" && !effectiveCriteria) return { error: "criteria is required for the Web Watch adapter" };
 
   if (body.keyword !== undefined) {
     const keyword = (body.keyword ?? "").trim();
@@ -171,7 +194,8 @@ async function createItemWatch(request: Request, env: Env): Promise<Response> {
     id: crypto.randomUUID(),
     name: patch.name!,
     adapter: patch.adapter!,
-    url: patch.url!,
+    url: patch.url ?? null,
+    criteria: patch.criteria ?? null,
     keyword: patch.keyword ?? null,
     maxPrice: patch.maxPrice ?? null,
     minDiscountPercent: patch.minDiscountPercent ?? null,
@@ -195,10 +219,11 @@ async function updateItemWatch(
   if (error || !patch) return json({ error }, 400);
 
   const urlChanged = patch.url !== undefined && patch.url !== watch.url;
+  const criteriaChanged = patch.criteria !== undefined && patch.criteria !== watch.criteria;
   const adapterChanged = patch.adapter !== undefined && patch.adapter !== watch.adapter;
   Object.assign(watch, patch);
 
-  if (urlChanged || adapterChanged) {
+  if (urlChanged || criteriaChanged || adapterChanged) {
     watch.lastRun = undefined;
     watch.lastError = undefined;
     watch.lastDeals = undefined;
