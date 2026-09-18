@@ -154,6 +154,7 @@ textarea { min-height: 130px; resize: vertical; }
   padding: .75rem;
 }
 .listing.removed { opacity: .62; }
+.listing.deal { border-color: var(--green); box-shadow: 0 0 0 1px var(--green); }
 .listing-top { display: flex; gap: .6rem; align-items: flex-start; }
 .listing-title { flex: 1; min-width: 0; }
 .listing-title a { color: var(--text); text-decoration: none; font-weight: 750; overflow-wrap: anywhere; }
