@@ -42,11 +42,15 @@ function extractListings(html: string): AdapterListing[] {
     const price = priceMatch ? parsePrice(priceMatch[1]) : null;
     if (price === null) continue;
 
+    const originalMatch = block.match(/PT_PrisOrdinarie">\(([^<]+)\)</);
+    const originalPrice = originalMatch ? parsePrice(originalMatch[1]) : null;
+
     const name = link[2].trim();
     out.push({
       id: artnr[1],
       name,
       price,
+      originalPrice: originalPrice !== null && originalPrice > price ? originalPrice : null,
       currency: "DKK",
       condition: parseCondition(name),
       url: new URL(link[1], BASE).toString(),

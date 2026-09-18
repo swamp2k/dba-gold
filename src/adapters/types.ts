@@ -4,6 +4,7 @@ export interface AdapterListing {
   id: string;
   name: string;
   price: number;
+  originalPrice: number | null;
   currency: string;
   condition: Condition;
   url: string;

@@ -35,15 +35,21 @@
             <label for="url">Side-URL (kategori eller tilbudshjørne)</label>
             <input id="url" required type="url" placeholder="https://www.maxgaming.dk/dk/tilbudshjorne" />
           </div>
-          <div>
-            <label for="maxPrice">Maks. pris (kr.)</label>
-            <input id="maxPrice" type="number" min="0" step="50" placeholder="valgfri" />
+          <div class="grid two">
+            <div>
+              <label for="maxPrice">Maks. pris (kr.)</label>
+              <input id="maxPrice" type="number" min="0" step="50" placeholder="valgfri" />
+            </div>
+            <div>
+              <label for="minDiscountPercent">Min. rabat (%)</label>
+              <input id="minDiscountPercent" type="number" min="1" max="99" step="5" value="40" />
+            </div>
           </div>
           <button class="btn" id="createBtn" type="submit">Opret item watch</button>
           <div class="status" id="createStatus" role="status"></div>
         </div>
       </form>
-      <p class="hint">Første kørsel opretter en baseline pris-historik. Herefter tjekkes siden dagligt, og et produkt flages som et fund, når prisen falder til eller tæt på sit historiske lavpunkt (seneste 90 dage).</p>
+      <p class="hint">Et produkt flages som et fund, når siden selv viser mindst denne rabat mod normalprisen (virker fra første kørsel). Hvis siden ikke viser en normalpris for produktet, bruges i stedet dets eget historiske lavpunkt (seneste 90 dage) som reserveløsning — det kræver et par dages historik at opbygge.</p>
     </section>
 
     <section class="card profiles-card">

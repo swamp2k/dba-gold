@@ -43,9 +43,18 @@ export function buildItemWatchState(
     const history = (prior?.history ?? []).filter(point => now - point.seenAt <= ITEM_WATCH_HISTORY_MS);
     const historicLow = history.length > 0 ? Math.min(...history.map(point => point.price)) : null;
 
-    // Only alert on an actual drop since the last check — otherwise a product
-    // sitting unchanged at its own historic low would re-alert every single run.
-    if (!baseline && prior && historicLow !== null && listing.price < prior.price) {
+    // "Deal" here means "currently a good offer", recomputed fresh every run —
+    // not a one-time change event. (Event-style dedup belongs with a
+    // notification channel, once one exists, not here.)
+    if (watch.minDiscountPercent !== null && listing.originalPrice !== null) {
+      const discountPercent = Math.round((1 - listing.price / listing.originalPrice) * 100);
+      if (discountPercent >= watch.minDiscountPercent) {
+        deals.push({
+          productId: listing.id, name: listing.name, url: listing.url, price: listing.price,
+          reason: "on_page_discount", discountPercent, originalPrice: listing.originalPrice,
+        });
+      }
+    } else if (historicLow !== null) {
       if (listing.price <= historicLow) {
         deals.push({
           productId: listing.id, name: listing.name, url: listing.url,
@@ -61,8 +70,8 @@ export function buildItemWatchState(
 
     history.push({ price: listing.price, seenAt: now });
     products[listing.id] = {
-      id: listing.id, name: listing.name, url: listing.url,
-      condition: listing.condition, price: listing.price, history,
+      id: listing.id, name: listing.name, url: listing.url, condition: listing.condition,
+      price: listing.price, originalPrice: listing.originalPrice, history,
     };
   }
 
@@ -116,6 +125,17 @@ function normalizeItemWatchInput(body: ItemWatchInput, existing?: ItemWatch): {
       patch.maxPrice = Math.round(maxPrice);
     }
   }
+  if (body.minDiscountPercent !== undefined) {
+    if (body.minDiscountPercent === null || body.minDiscountPercent === "") {
+      patch.minDiscountPercent = null;
+    } else {
+      const minDiscountPercent = Number(body.minDiscountPercent);
+      if (!Number.isFinite(minDiscountPercent) || minDiscountPercent <= 0 || minDiscountPercent >= 100) {
+        return { error: "minDiscountPercent must be between 0 and 100" };
+      }
+      patch.minDiscountPercent = Math.round(minDiscountPercent);
+    }
+  }
   if (body.enabled !== undefined) patch.enabled = Boolean(body.enabled);
 
   return { patch };
@@ -133,6 +153,7 @@ async function createItemWatch(request: Request, env: Env): Promise<Response> {
     adapter: patch.adapter!,
     url: patch.url!,
     maxPrice: patch.maxPrice ?? null,
+    minDiscountPercent: patch.minDiscountPercent ?? null,
     enabled: body.enabled !== false,
     createdAt: Date.now(),
   };

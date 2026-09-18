@@ -30,8 +30,10 @@
       return { new: 'Ny', demo: 'Demo', refurb: 'Refurbished', 'open-box': 'Open box', returned: 'Retur' }[condition] || '';
     }
 
-    function dealLabel(reason) {
-      return reason === 'historic_low' ? 'Historisk lavpris' : 'Nær historisk lavpris';
+    function dealLabel(deal) {
+      if (deal.reason === 'on_page_discount') return `${deal.discountPercent}% rabat mod normalpris`;
+      if (deal.reason === 'historic_low') return 'Historisk lavpris';
+      return 'Nær historisk lavpris';
     }
 
     function setStatus(element, message, error = false) {
@@ -59,6 +61,7 @@
             adapter: $('adapter').value,
             url: $('url').value.trim(),
             maxPrice: $('maxPrice').value || null,
+            minDiscountPercent: $('minDiscountPercent').value || null,
           }),
         });
         setStatus($('createStatus'), 'Oprettet. Kør den for at lave første baseline.');
@@ -129,7 +132,7 @@
     function renderDetail() {
       const { watch, state } = selectedData;
       $('detailName').textContent = watch.name;
-      $('detailMeta').textContent = `${adapterLabel(watch.adapter)} · Maks. ${watch.maxPrice == null ? 'ikke sat' : formatPrice(watch.maxPrice)} · Senest ${formatDate(watch.lastRun)}`;
+      $('detailMeta').textContent = `${adapterLabel(watch.adapter)} · Maks. ${watch.maxPrice == null ? 'ikke sat' : formatPrice(watch.maxPrice)} · Min. rabat ${watch.minDiscountPercent == null ? 'ikke sat' : watch.minDiscountPercent + '%'} · Senest ${formatDate(watch.lastRun)}`;
       $('toggleBtn').textContent = watch.enabled ? 'Sæt på pause' : 'Aktivér';
 
       const products = Object.values(state?.products || {});
@@ -159,10 +162,13 @@
                 <a href="${escapeHtml(product.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(product.name)}</a>
                 <div class="listing-meta">
                   ${product.condition ? `${escapeHtml(conditionLabel(product.condition))} · ` : ''}Historisk lav: ${escapeHtml(formatPrice(historicLow))}
-                  ${deal ? ` · <span style="color:var(--green)">${escapeHtml(dealLabel(deal.reason))}</span>` : ''}
+                  ${deal ? ` · <span style="color:var(--green)">${escapeHtml(dealLabel(deal))}</span>` : ''}
                 </div>
               </div>
-              <div class="price">${escapeHtml(formatPrice(product.price))}</div>
+              <div class="price">
+                ${product.originalPrice != null ? `<div class="old-price">${escapeHtml(formatPrice(product.originalPrice))}</div>` : ''}
+                ${escapeHtml(formatPrice(product.price))}
+              </div>
             </div>
           </article>`;
       }).join('');

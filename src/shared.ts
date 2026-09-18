@@ -99,6 +99,7 @@ export interface ItemWatch {
   adapter: ItemWatchAdapterName;
   url: string;
   maxPrice: number | null;
+  minDiscountPercent: number | null;
   enabled: boolean;
   createdAt: number;
   lastRun?: number;
@@ -111,6 +112,7 @@ export interface ItemWatchInput {
   adapter?: ItemWatchAdapterName;
   url?: string;
   maxPrice?: number | string | null;
+  minDiscountPercent?: number | string | null;
   enabled?: boolean;
 }
 
@@ -125,16 +127,21 @@ export interface ItemWatchProduct {
   url: string;
   condition: Condition;
   price: number;
+  originalPrice: number | null;
   history: PricePoint[];
 }
+
+export type ItemWatchDealReason = "on_page_discount" | "historic_low" | "near_historic_low";
 
 export interface ItemWatchDeal {
   productId: string;
   name: string;
   url: string;
   price: number;
-  historicLow: number;
-  reason: "historic_low" | "near_historic_low";
+  reason: ItemWatchDealReason;
+  discountPercent?: number;
+  originalPrice?: number;
+  historicLow?: number;
 }
 
 export interface ItemWatchState {
