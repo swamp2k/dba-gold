@@ -98,8 +98,11 @@ export interface ItemWatch {
   name: string;
   adapter: ItemWatchAdapterName;
   url: string;
+  keyword: string | null;
   maxPrice: number | null;
   minDiscountPercent: number | null;
+  interval: WatchInterval;
+  preferredHour: number | null;
   enabled: boolean;
   createdAt: number;
   lastRun?: number;
@@ -111,8 +114,11 @@ export interface ItemWatchInput {
   name?: string;
   adapter?: ItemWatchAdapterName;
   url?: string;
+  keyword?: string | null;
   maxPrice?: number | string | null;
   minDiscountPercent?: number | string | null;
+  interval?: WatchInterval;
+  preferredHour?: number | string | null;
   enabled?: boolean;
 }
 

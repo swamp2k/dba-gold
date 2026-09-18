@@ -1,9 +1,20 @@
     let watches = [];
     let selectedId = null;
     let selectedData = null;
+    let editingId = null;
+    let onlyMatches = false;
 
     const $ = id => document.getElementById(id);
     const apiHeaders = { 'Content-Type': 'application/json' };
+
+    for (let hour = 0; hour < 24; hour++) {
+      const option = document.createElement('option');
+      option.value = String(hour);
+      option.textContent = `${String(hour).padStart(2, '0')}:00`;
+      $('preferredHour').appendChild(option);
+    }
+    $('preferredHour').insertBefore(new Option('Ingen præference', ''), $('preferredHour').firstChild);
+    $('preferredHour').value = '';
 
     function escapeHtml(value) {
       return String(value ?? '')
@@ -48,26 +59,69 @@
       return data;
     }
 
+    function formPayload() {
+      return {
+        name: $('name').value.trim(),
+        adapter: $('adapter').value,
+        url: $('url').value.trim(),
+        keyword: $('keyword').value.trim() || null,
+        maxPrice: $('maxPrice').value || null,
+        minDiscountPercent: $('minDiscountPercent').value || null,
+        interval: $('interval').value,
+        preferredHour: $('preferredHour').value || null,
+      };
+    }
+
+    function enterEditMode(watch) {
+      editingId = watch.id;
+      $('name').value = watch.name;
+      $('adapter').value = watch.adapter;
+      $('url').value = watch.url;
+      $('keyword').value = watch.keyword || '';
+      $('maxPrice').value = watch.maxPrice ?? '';
+      $('minDiscountPercent').value = watch.minDiscountPercent ?? '';
+      $('interval').value = watch.interval;
+      $('preferredHour').value = watch.preferredHour ?? '';
+      $('formTitle').textContent = `Rediger “${watch.name}”`;
+      $('createBtn').textContent = 'Gem ændringer';
+      $('cancelEditBtn').hidden = false;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function exitEditMode() {
+      editingId = null;
+      $('createForm').reset();
+      $('preferredHour').value = '';
+      $('formTitle').textContent = 'Ny item watch';
+      $('createBtn').textContent = 'Opret item watch';
+      $('cancelEditBtn').hidden = true;
+    }
+
+    $('cancelEditBtn').addEventListener('click', exitEditMode);
+
     $('createForm').addEventListener('submit', async event => {
       event.preventDefault();
       const button = $('createBtn');
       button.disabled = true;
-      setStatus($('createStatus'), 'Opretter…');
+      setStatus($('createStatus'), editingId ? 'Gemmer…' : 'Opretter…');
       try {
-        const watch = await api('/api/itemwatch', {
-          method: 'POST',
-          body: JSON.stringify({
-            name: $('name').value.trim(),
-            adapter: $('adapter').value,
-            url: $('url').value.trim(),
-            maxPrice: $('maxPrice').value || null,
-            minDiscountPercent: $('minDiscountPercent').value || null,
-          }),
-        });
-        setStatus($('createStatus'), 'Oprettet. Kør den for at lave første baseline.');
-        $('createForm').reset();
-        await loadWatches();
-        await selectWatch(watch.id);
+        if (editingId) {
+          const watch = await api(`/api/itemwatch/${encodeURIComponent(editingId)}`, {
+            method: 'PATCH',
+            body: JSON.stringify(formPayload()),
+          });
+          setStatus($('createStatus'), 'Gemt.');
+          exitEditMode();
+          await loadWatches();
+          await selectWatch(watch.id, false);
+        } else {
+          const watch = await api('/api/itemwatch', { method: 'POST', body: JSON.stringify(formPayload()) });
+          setStatus($('createStatus'), 'Oprettet. Kør den for at lave første baseline.');
+          $('createForm').reset();
+          $('preferredHour').value = '';
+          await loadWatches();
+          await selectWatch(watch.id);
+        }
       } catch (error) {
         setStatus($('createStatus'), error.message, true);
       } finally {
@@ -77,8 +131,13 @@
 
     $('refreshBtn').addEventListener('click', loadWatches);
     $('runBtn').addEventListener('click', runSelected);
+    $('editBtn').addEventListener('click', () => selectedData && enterEditMode(selectedData.watch));
     $('toggleBtn').addEventListener('click', toggleSelected);
     $('deleteBtn').addEventListener('click', deleteSelected);
+    $('onlyMatchesToggle').addEventListener('change', event => {
+      onlyMatches = event.target.checked;
+      if (selectedData) renderDetail();
+    });
 
     async function loadWatches() {
       setStatus($('listStatus'), 'Henter…');
@@ -115,6 +174,11 @@
     }
 
     async function selectWatch(id, scroll = true) {
+      if (editingId && editingId !== id) exitEditMode();
+      if (id !== selectedId) {
+        onlyMatches = false;
+        $('onlyMatchesToggle').checked = false;
+      }
       selectedId = id;
       renderWatches();
       $('detailCard').hidden = false;
@@ -129,10 +193,16 @@
       }
     }
 
+    function scheduleLabel(watch) {
+      const interval = watch.interval === 'weekly' ? 'Ugentligt' : 'Dagligt';
+      const hour = watch.preferredHour == null ? '' : ` omkring ${String(watch.preferredHour).padStart(2, '0')}:00 UTC`;
+      return interval + hour;
+    }
+
     function renderDetail() {
       const { watch, state } = selectedData;
       $('detailName').textContent = watch.name;
-      $('detailMeta').textContent = `${adapterLabel(watch.adapter)} · Maks. ${watch.maxPrice == null ? 'ikke sat' : formatPrice(watch.maxPrice)} · Min. rabat ${watch.minDiscountPercent == null ? 'ikke sat' : watch.minDiscountPercent + '%'} · Senest ${formatDate(watch.lastRun)}`;
+      $('detailMeta').textContent = `${adapterLabel(watch.adapter)}${watch.keyword ? ` · “${watch.keyword}”` : ''} · Maks. ${watch.maxPrice == null ? 'ikke sat' : formatPrice(watch.maxPrice)} · Min. rabat ${watch.minDiscountPercent == null ? 'ikke sat' : watch.minDiscountPercent + '%'} · ${scheduleLabel(watch)} · Senest ${formatDate(watch.lastRun)}`;
       $('toggleBtn').textContent = watch.enabled ? 'Sæt på pause' : 'Aktivér';
 
       const products = Object.values(state?.products || {});
@@ -150,9 +220,21 @@
         return;
       }
       const dealByProduct = new Map(deals.map(deal => [deal.productId, deal]));
-      const sorted = [...products].sort((a, b) => a.price - b.price);
+      const matches = [];
+      const rest = [];
+      for (const product of products) (dealByProduct.has(product.id) ? matches : rest).push(product);
+      matches.sort((a, b) =>
+        (dealByProduct.get(b.id).discountPercent || 0) - (dealByProduct.get(a.id).discountPercent || 0)
+        || a.price - b.price);
+      rest.sort((a, b) => a.price - b.price);
+      const visible = onlyMatches ? matches : [...matches, ...rest];
 
-      $('productList').innerHTML = sorted.map(product => {
+      if (!visible.length) {
+        $('productList').innerHTML = '<div class="empty">Ingen fund ved seneste kørsel.</div>';
+        return;
+      }
+
+      $('productList').innerHTML = visible.map(product => {
         const deal = dealByProduct.get(product.id);
         const historicLow = product.history.length ? Math.min(...product.history.map(point => point.price)) : null;
         return `
@@ -209,6 +291,7 @@
       if (!selectedData || !confirm(`Slet item watch “${selectedData.watch.name}”?`)) return;
       try {
         await api(`/api/itemwatch/${encodeURIComponent(selectedId)}`, { method: 'DELETE' });
+        if (editingId === selectedId) exitEditMode();
         selectedId = null;
         selectedData = null;
         $('detailCard').hidden = true;

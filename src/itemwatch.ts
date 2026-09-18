@@ -16,6 +16,7 @@ import {
   ItemWatchState,
   INTERVAL_MS,
   json,
+  normalizeInterval,
   readJson,
   saveItemWatchState,
   saveItemWatches,
@@ -36,8 +37,11 @@ export function buildItemWatchState(
   const deals: ItemWatchDeal[] = [];
   const baseline = previous === null;
 
+  const keyword = watch.keyword?.toLocaleLowerCase("da-DK") ?? null;
+
   for (const listing of listings) {
     if (watch.maxPrice !== null && listing.price > watch.maxPrice) continue;
+    if (keyword && !listing.name.toLocaleLowerCase("da-DK").includes(keyword)) continue;
 
     const prior = previous?.products[listing.id];
     const history = (prior?.history ?? []).filter(point => now - point.seenAt <= ITEM_WATCH_HISTORY_MS);
@@ -116,6 +120,10 @@ function normalizeItemWatchInput(body: ItemWatchInput, existing?: ItemWatch): {
     patch.url = url.toString();
   } else if (!existing) return { error: "url is required" };
 
+  if (body.keyword !== undefined) {
+    const keyword = (body.keyword ?? "").trim();
+    patch.keyword = keyword ? keyword.slice(0, 100) : null;
+  }
   if (body.maxPrice !== undefined) {
     if (body.maxPrice === null || body.maxPrice === "") {
       patch.maxPrice = null;
@@ -136,6 +144,18 @@ function normalizeItemWatchInput(body: ItemWatchInput, existing?: ItemWatch): {
       patch.minDiscountPercent = Math.round(minDiscountPercent);
     }
   }
+  if (body.interval !== undefined) patch.interval = normalizeInterval(body.interval);
+  if (body.preferredHour !== undefined) {
+    if (body.preferredHour === null || body.preferredHour === "") {
+      patch.preferredHour = null;
+    } else {
+      const preferredHour = Number(body.preferredHour);
+      if (!Number.isInteger(preferredHour) || preferredHour < 0 || preferredHour > 23) {
+        return { error: "preferredHour must be between 0 and 23" };
+      }
+      patch.preferredHour = preferredHour;
+    }
+  }
   if (body.enabled !== undefined) patch.enabled = Boolean(body.enabled);
 
   return { patch };
@@ -152,8 +172,11 @@ async function createItemWatch(request: Request, env: Env): Promise<Response> {
     name: patch.name!,
     adapter: patch.adapter!,
     url: patch.url!,
+    keyword: patch.keyword ?? null,
     maxPrice: patch.maxPrice ?? null,
     minDiscountPercent: patch.minDiscountPercent ?? null,
+    interval: patch.interval ?? normalizeInterval(undefined),
+    preferredHour: patch.preferredHour ?? null,
     enabled: body.enabled !== false,
     createdAt: Date.now(),
   };
@@ -239,7 +262,9 @@ export async function doItemWatches(env: Env): Promise<void> {
 
   for (const watch of watches) {
     if (!watch.enabled) continue;
-    if (watch.lastRun && now - watch.lastRun < INTERVAL_MS.daily) continue;
+    const intervalMs = INTERVAL_MS[watch.interval] ?? INTERVAL_MS.daily;
+    if (watch.lastRun && now - watch.lastRun < intervalMs) continue;
+    if (watch.preferredHour !== null && new Date(now).getUTCHours() !== watch.preferredHour) continue;
     try {
       await runItemWatch(env, watch);
     } catch (error) {

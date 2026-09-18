@@ -18,7 +18,7 @@
 
   <main>
     <section class="card create-card">
-      <h1 class="section-title">Ny item watch</h1>
+      <h1 class="section-title" id="formTitle">Ny item watch</h1>
       <form id="createForm">
         <div class="grid">
           <div>
@@ -35,6 +35,10 @@
             <label for="url">Side-URL (kategori eller tilbudshjørne)</label>
             <input id="url" required type="url" placeholder="https://www.maxgaming.dk/dk/tilbudshjorne" />
           </div>
+          <div>
+            <label for="keyword">Nøgleord (valgfri)</label>
+            <input id="keyword" placeholder="fx logitech" maxlength="100" />
+          </div>
           <div class="grid two">
             <div>
               <label for="maxPrice">Maks. pris (kr.)</label>
@@ -45,11 +49,27 @@
               <input id="minDiscountPercent" type="number" min="1" max="99" step="5" value="40" />
             </div>
           </div>
-          <button class="btn" id="createBtn" type="submit">Opret item watch</button>
+          <div class="grid two">
+            <div>
+              <label for="interval">Kørsel</label>
+              <select id="interval">
+                <option value="daily">Dagligt</option>
+                <option value="weekly">Ugentligt</option>
+              </select>
+            </div>
+            <div>
+              <label for="preferredHour">Foretrukket tidspunkt (UTC)</label>
+              <select id="preferredHour"></select>
+            </div>
+          </div>
+          <div class="row">
+            <button class="btn" id="createBtn" type="submit">Opret item watch</button>
+            <button class="btn secondary" id="cancelEditBtn" type="button" hidden>Annullér redigering</button>
+          </div>
           <div class="status" id="createStatus" role="status"></div>
         </div>
       </form>
-      <p class="hint">Et produkt flages som et fund, når siden selv viser mindst denne rabat mod normalprisen (virker fra første kørsel). Hvis siden ikke viser en normalpris for produktet, bruges i stedet dets eget historiske lavpunkt (seneste 90 dage) som reserveløsning — det kræver et par dages historik at opbygge.</p>
+      <p class="hint">Et produkt flages som et fund, når siden selv viser mindst denne rabat mod normalprisen (virker fra første kørsel). Hvis siden ikke viser en normalpris for produktet, bruges i stedet dets eget historiske lavpunkt (seneste 90 dage) som reserveløsning — det kræver et par dages historik at opbygge. Nøgleord og maks. pris begrænser hvilke produkter der overhovedet spores. Uden et valgt tidspunkt kører den ved første lejlighed, kørslen tjekkes hver time.</p>
     </section>
 
     <section class="card profiles-card">
@@ -68,11 +88,16 @@
           <div id="detailMeta"></div>
         </div>
         <button class="btn small" id="runBtn">Kør nu</button>
+        <button class="btn secondary small" id="editBtn">Rediger</button>
         <button class="btn secondary small" id="toggleBtn"></button>
         <button class="btn danger small" id="deleteBtn">Slet</button>
       </div>
       <div class="status" id="detailStatus" role="status"></div>
       <div class="stats" id="detailStats"></div>
+      <label class="row" style="margin:.6rem 0 0; cursor:pointer;">
+        <input type="checkbox" id="onlyMatchesToggle" style="width:auto;" />
+        <span style="color:var(--muted); font-size:.82rem;">Vis kun fund</span>
+      </label>
       <div class="listing-list" id="productList"></div>
     </section>
   </main>
