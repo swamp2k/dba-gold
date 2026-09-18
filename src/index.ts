@@ -1,4 +1,5 @@
 import { createRecurringSearch, doRecurring, handleAnalyze, handleExport } from "./analyze";
+import { doItemWatches, routeItemWatches } from "./itemwatch";
 import {
   CORS,
   Env,
@@ -220,6 +221,7 @@ export default {
       if (pathname === "/api/export" && request.method === "POST") return handleExport(request);
       if (pathname === "/api/history" && request.method === "GET") return json(await getHistory(env));
       if (pathname.startsWith("/api/watchlists")) return routeWatchlists(request, env, pathname);
+      if (pathname.startsWith("/api/itemwatch")) return routeItemWatches(request, env, pathname);
       if (pathname === "/api/recurring" && request.method === "GET") return json(await getRecurring(env));
       if (pathname === "/api/recurring" && request.method === "POST") {
         const body = await readJson<Partial<RecurringSearch>>(request);
@@ -257,6 +259,6 @@ export default {
   },
 
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(Promise.all([doRecurring(env), doWatchProfiles(env)]).then(() => undefined));
+    ctx.waitUntil(Promise.all([doRecurring(env), doWatchProfiles(env), doItemWatches(env)]).then(() => undefined));
   },
 };

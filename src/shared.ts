@@ -90,6 +90,66 @@ export interface WatchProfileInput {
   enabled?: boolean;
 }
 
+export type Condition = "new" | "demo" | "refurb" | "open-box" | "returned" | null;
+export type ItemWatchAdapterName = "maxgaming";
+
+export interface ItemWatch {
+  id: string;
+  name: string;
+  adapter: ItemWatchAdapterName;
+  url: string;
+  maxPrice: number | null;
+  enabled: boolean;
+  createdAt: number;
+  lastRun?: number;
+  lastError?: string;
+  lastDeals?: ItemWatchDeal[];
+}
+
+export interface ItemWatchInput {
+  name?: string;
+  adapter?: ItemWatchAdapterName;
+  url?: string;
+  maxPrice?: number | string | null;
+  enabled?: boolean;
+}
+
+export interface PricePoint {
+  price: number;
+  seenAt: number;
+}
+
+export interface ItemWatchProduct {
+  id: string;
+  name: string;
+  url: string;
+  condition: Condition;
+  price: number;
+  history: PricePoint[];
+}
+
+export interface ItemWatchDeal {
+  productId: string;
+  name: string;
+  url: string;
+  price: number;
+  historicLow: number;
+  reason: "historic_low" | "near_historic_low";
+}
+
+export interface ItemWatchState {
+  watchId: string;
+  runAt: number;
+  baseline: boolean;
+  products: Record<string, ItemWatchProduct>;
+}
+
+export const ITEM_WATCH_KEY = "itemwatch:items";
+export const ITEM_WATCH_STATE_PREFIX = "itemwatch:state:";
+export const ITEM_WATCH_HISTORY_MS = 90 * 24 * 60 * 60 * 1000;
+export const ITEM_WATCH_NEAR_LOW_MARGIN = 0.05;
+export const ITEM_WATCH_ADAPTERS = new Set<ItemWatchAdapterName>(["maxgaming"]);
+
 export const ALLOWED_MODELS = new Set(["claude-haiku-4-5-20251001", "claude-sonnet-4-6", "claude-opus-4-8"]);
 export const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
 export const HISTORY_MAX = 50;
@@ -171,6 +231,22 @@ export async function getWatchState(env: Env, profileId: string): Promise<WatchS
 
 export async function saveWatchState(env: Env, state: WatchState): Promise<void> {
   await env.DBA_GOLD_DATA.put(`${WATCH_STATE_PREFIX}${state.profileId}`, JSON.stringify(state));
+}
+
+export async function getItemWatches(env: Env): Promise<ItemWatch[]> {
+  return JSON.parse((await env.DBA_GOLD_DATA.get(ITEM_WATCH_KEY)) ?? "[]") as ItemWatch[];
+}
+
+export async function saveItemWatches(env: Env, watches: ItemWatch[]): Promise<void> {
+  await env.DBA_GOLD_DATA.put(ITEM_WATCH_KEY, JSON.stringify(watches));
+}
+
+export async function getItemWatchState(env: Env, watchId: string): Promise<ItemWatchState | null> {
+  return env.DBA_GOLD_DATA.get<ItemWatchState>(`${ITEM_WATCH_STATE_PREFIX}${watchId}`, "json");
+}
+
+export async function saveItemWatchState(env: Env, state: ItemWatchState): Promise<void> {
+  await env.DBA_GOLD_DATA.put(`${ITEM_WATCH_STATE_PREFIX}${state.watchId}`, JSON.stringify(state));
 }
 
 export function json(data: unknown, status = 200): Response {
