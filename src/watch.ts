@@ -296,7 +296,8 @@ export async function doWatchProfiles(env: Env): Promise<void> {
   for (const profile of profiles) {
     if (!profile.enabled) continue;
     const interval = INTERVAL_MS[profile.interval] ?? INTERVAL_MS.daily;
-    if (profile.lastRun && now - profile.lastRun < interval) continue;
+    // Failed profiles retry on the next hourly cron tick instead of waiting for their full interval.
+    if (!profile.lastError && profile.lastRun && now - profile.lastRun < interval) continue;
     try {
       await runWatchProfile(env, profile);
     } catch (error) {
