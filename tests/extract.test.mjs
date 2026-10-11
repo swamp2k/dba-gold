@@ -104,3 +104,32 @@ test('frontend orchestrates pages and batches into downloadable JSON', async () 
   assert.match(downloadName, /\.json$/);
   assert.equal(elements.get('exportBtn').disabled, false);
 });
+
+test('Workers-compatible manual redirects preserve pagination within DBA', async () => {
+  const calls = [];
+  const c = load(async (url, options) => {
+    assert.equal(options.redirect, 'manual');
+    calls.push(url);
+    if (calls.length === 1) return new Response('', { status: 301, headers: { location: 'https://www.dba.dk/search?page=2' } });
+    return new Response(html({ '@type': 'ItemList', itemListElement: [] }));
+  });
+  const response = await c.handleExtract(request({ action: 'page', dbaUrl: 'https://dba.dk/search', page: 2 }), {});
+  assert.equal(response.status, 200);
+  assert.equal(calls.length, 2);
+  assert.equal(new URL(calls[1]).searchParams.get('page'), '2');
+});
+test('redirects outside DBA, missing locations and loops fail clearly', async () => {
+  for (const location of ['https://evil.example/search', 'http://www.dba.dk/search', 'https://www.dba.dk:8443/search', null, '/search']) {
+    let calls = 0;
+    const c = load(async (_url, options) => {
+      assert.equal(options.redirect, 'manual');
+      calls++;
+      return new Response('', { status: 302, headers: location ? { location } : {} });
+    });
+    const response = await c.handleExtract(request({ action: 'page', dbaUrl: 'https://www.dba.dk/search', page: 1 }), {});
+    assert.equal(response.status, 502);
+    assert.match((await response.json()).error, /redirect/i);
+    assert.ok(calls <= 4);
+    if (location && !location.startsWith('/')) assert.equal(calls, 1);
+  }
+});
