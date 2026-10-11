@@ -1,4 +1,5 @@
 import { createRecurringSearch, doRecurring, handleAnalyze, handleExport } from "./analyze";
+import { handleExtract } from "./extract";
 import { doItemWatches, routeItemWatches } from "./itemwatch";
 import {
   CORS,
@@ -210,6 +211,7 @@ export default {
       if (pathname === "/api/analyze" && request.method === "POST") return handleAnalyze(request, env, ctx);
       if (pathname === "/api/smart-analyze" && request.method === "POST") return handleSmartAnalyze(request, env, ctx);
       if (pathname === "/api/export" && request.method === "POST") return handleExport(request);
+      if (pathname === "/api/extract" && request.method === "POST") return handleExtract(request, env);
       if (pathname === "/api/history" && request.method === "GET") return json(await getHistory(env));
       if (pathname.startsWith("/api/watchlists")) return routeWatchlists(request, env, pathname);
       if (pathname.startsWith("/api/itemwatch")) return routeItemWatches(request, env, pathname);
@@ -253,3 +255,4 @@ export default {
     ctx.waitUntil(Promise.all([doRecurring(env), doWatchProfiles(env), doItemWatches(env)]).then(() => undefined));
   },
 };
+
