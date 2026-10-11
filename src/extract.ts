@@ -36,11 +36,26 @@ export function parseDetails(html: string): RecordValue | null {
 }
 
 async function fetchHtml(url: string): Promise<string> {
-  const response = await fetch(url, {
-    redirect: "error",
-    signal: AbortSignal.timeout(20000),
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; DBA-Gold/1.0)", "Accept-Language": "da-DK,da;q=0.9,en;q=0.8" },
-  });
+  let target = new URL(url);
+  const signal = AbortSignal.timeout(20000);
+  let response: Response;
+  for (let redirects = 0; ; redirects++) {
+    if (target.protocol !== "https:" || !["dba.dk", "www.dba.dk"].includes(target.hostname) ||
+        target.port || target.username || target.password) {
+      throw new Error("DBA redirected to an unsupported destination");
+    }
+    response = await fetch(target.toString(), {
+      redirect: "manual",
+      signal,
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; DBA-Gold/1.0)", "Accept-Language": "da-DK,da;q=0.9,en;q=0.8" },
+    });
+    if (![301, 302, 303, 307, 308].includes(response.status)) break;
+    const location = response.headers.get("location");
+    await response.body?.cancel();
+    if (!location) throw new Error("DBA returned a redirect without a destination");
+    if (redirects >= 3) throw new Error("DBA returned too many redirects");
+    target = new URL(location, target);
+  }
   if (!response.ok) {
     await response.body?.cancel();
     throw new Error(`DBA returned HTTP ${response.status}`);
