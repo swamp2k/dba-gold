@@ -438,6 +438,8 @@
         catch (error) {
           if (error.name === 'AbortError' || page === 1) throw error;
           failedPages.push({ page, error: error.message });
+          // Two failures in a row: stop instead of hammering DBA for every remaining page.
+          if (failedPages.length >= 2 && failedPages[failedPages.length - 2].page === page - 1) break;
           continue;
         }
         pagesFetched++;

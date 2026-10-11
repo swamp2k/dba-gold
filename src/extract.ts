@@ -129,7 +129,8 @@ export async function handleExtract(request: Request, env: Env): Promise<Respons
       const listings = lists.length
         ? extractListings(lists.map(node => `<script type="application/ld+json">${JSON.stringify(node)}</script>`).join(""))
         : extractListings(html);
-      if (!listings.length && !schemaNodes(html).some(node => node["@type"] === "ItemList" || record(node.mainEntity)?.["@type"] === "ItemList")) {
+      // Pages past the last result have no ItemList; treat that as the end of the search, not a block.
+      if (!listings.length && Number(page) === 1 && !schemaNodes(html).some(node => node["@type"] === "ItemList" || record(node.mainEntity)?.["@type"] === "ItemList")) {
         throw new Error("DBA did not return recognizable search data; the page may be blocked.");
       }
       return json({ listings, total: extractTotal(html), maxPages: MAX_PAGES });
