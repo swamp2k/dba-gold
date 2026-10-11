@@ -10,6 +10,11 @@ import {
   WATCH_AI_MAX_LISTINGS,
 } from "./shared";
 
+// "https://schema.org/UsedCondition" -> "UsedCondition"
+function schemaValue(value: unknown): string | null {
+  return value ? String(value).split("/").pop() ?? null : null;
+}
+
 function extractListings(html: string): Listing[] {
   const out: Listing[] = [];
   const re = /<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi;
@@ -40,11 +45,20 @@ function extractListings(html: string): Listing[] {
         const rawPrice = offers?.price;
         const parsedPrice = rawPrice !== null && rawPrice !== undefined && rawPrice !== ""
           ? Number(rawPrice) : null;
+        const brand = itemRecord.brand as Record<string, unknown> | undefined;
         out.push({
           id,
           name: String(itemRecord.name ?? itemRecord.description ?? "").trim(),
           price: parsedPrice !== null && Number.isFinite(parsedPrice) ? parsedPrice : null,
           currency: String(offers?.priceCurrency ?? "DKK"),
+          details: {
+            url: itemUrl,
+            description: String(itemRecord.description ?? "").trim(),
+            brand: brand?.name ? String(brand.name) : null,
+            condition: schemaValue(itemRecord.itemCondition ?? offers?.itemCondition),
+            availability: schemaValue(offers?.availability),
+            image: itemRecord.image ? String(itemRecord.image) : null,
+          },
         });
       }
     }

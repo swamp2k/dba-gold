@@ -111,15 +111,37 @@ export async function handleAnalyze(request: Request, env: Env, ctx: ExecutionCo
   });
 }
 
+// Filter text like "iphone -cover -etui": every plain word must appear in the
+// title, and no "-word" may appear. Case-insensitive.
+function matchesFilter(title: string, filter: string): boolean {
+  const text = title.toLowerCase();
+  const words = filter.toLowerCase().split(/\s+/).filter(Boolean);
+  return words.every(word => word.startsWith("-")
+    ? word.length === 1 || !text.includes(word.slice(1))
+    : text.includes(word));
+}
+
 export async function handleExport(request: Request): Promise<Response> {
-  const body = await readJson<{ dbaUrl?: string }>(request);
+  const body = await readJson<{ dbaUrl?: string; filter?: string }>(request);
   if (!body) return json({ error: "Invalid JSON body" }, 400);
   const dbaUrl = normalizeDbaUrl(body.dbaUrl ?? "");
   if (!dbaUrl) return json({ error: "A valid https://www.dba.dk search URL is required" }, 400);
+  const filter = (body.filter ?? "").trim();
 
   const { listings, total } = await fetchAllListings(dbaUrl);
   if (listings.length === 0) return json({ error: "No listings found. The URL may not be a DBA search page." }, 400);
-  return json({ url: dbaUrl, exportedAt: new Date().toISOString(), total, listings });
+  const kept = filter ? listings.filter(listing => matchesFilter(listing.name, filter)) : listings;
+  if (kept.length === 0) return json({ error: `None of the ${listings.length} listings matched "${filter}".` }, 400);
+
+  return json({
+    url: dbaUrl,
+    exportedAt: new Date().toISOString(),
+    filter: filter || null,
+    totalOnDba: total,
+    fetched: listings.length,
+    count: kept.length,
+    listings: kept.map(({ details, ...listing }) => ({ ...listing, ...details })),
+  });
 }
 
 export async function doRecurring(env: Env): Promise<void> {

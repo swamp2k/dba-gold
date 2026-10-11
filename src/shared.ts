@@ -38,6 +38,17 @@ export interface Listing {
   name: string;
   price: number | null;
   currency: string;
+  /** Extra fields from the search page, used only by the JSON export. */
+  details?: ListingDetails;
+}
+
+export interface ListingDetails {
+  url: string;
+  description: string;
+  brand: string | null;
+  condition: string | null;
+  availability: string | null;
+  image: string | null;
 }
 
 export interface WatchProfile {

@@ -38,7 +38,7 @@ export function buildWatchState(
   const currentIds = new Set<string>();
   const next: WatchCandidate[] = [];
 
-  for (const listing of currentListings) {
+  for (const { details: _details, ...listing } of currentListings) {
     if (!listing.id) continue;
     currentIds.add(listing.id);
     const prior = previousById.get(listing.id);
