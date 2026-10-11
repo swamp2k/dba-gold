@@ -10,7 +10,7 @@ import {
   WATCH_AI_MAX_LISTINGS,
 } from "./shared";
 
-function extractListings(html: string): Listing[] {
+export function extractListings(html: string): Listing[] {
   const out: Listing[] = [];
   const re = /<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi;
   let match: RegExpExecArray | null;
@@ -52,7 +52,7 @@ function extractListings(html: string): Listing[] {
   return out;
 }
 
-function extractTotal(html: string): number | null {
+export function extractTotal(html: string): number | null {
   const match = html.match(/([\d.]+)\s+annonce/);
   if (!match) return null;
   const total = Number(match[1].replace(/\./g, ""));
@@ -145,3 +145,4 @@ export function watchListingsBlock(profile: WatchProfile, state: WatchState, can
     lines,
   ].filter(Boolean).join("\n");
 }
+

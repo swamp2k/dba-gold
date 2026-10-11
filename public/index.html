@@ -201,9 +201,19 @@
             <option value="claude-opus-4-8">Opus 4.8 — Most capable</option>
           </select>
         </div>
-        <button class="btn secondary" id="exportBtn" onclick="exportJson()">⬇ Export JSON</button>
+        <button class="btn secondary" id="exportBtn" onclick="exportJson()">⬇ Extract JSON</button>
         <button class="btn" id="analyzeBtn" onclick="analyze()">⚡ Analyze Listings</button>
       </div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label for="extractCriteria">Extraction criteria</label>
+        <textarea id="extractCriteria" maxlength="2000" placeholder="All iPhones; exclude cases, chargers and accessories. Leave blank to extract every listing."></textarea>
+      </div>
+      <p class="empty-note">Extract JSON fetches full listing details and uses these criteria to select matches. Matching uses the selected AI model. Blank criteria exports all listings without AI matching.</p>
+      <p id="extractStatus" role="status" aria-live="polite"></p>
+      <button class="btn-sm" id="extractCancel" onclick="cancelExtraction()" hidden>Cancel extraction</button>
     </div>
 
     <!-- Results -->
@@ -389,36 +399,102 @@
 
   // ── Export raw JSON ───────────────────────────────────
 
+  let extractionController = null;
+
+  function cancelExtraction() { extractionController?.abort(); }
+
   async function exportJson() {
+    if (extractionController) return;
     const dbaUrl = document.getElementById('url').value.trim();
-    if (!dbaUrl) { alert('Please enter a DBA.dk URL.'); return; }
-
+    const criteria = document.getElementById('extractCriteria').value.trim();
+    const model = document.getElementById('model').value;
+    if (!dbaUrl) { alert('Please enter a DBA.dk search URL.'); return; }
     const btn = document.getElementById('exportBtn');
+    const status = document.getElementById('extractStatus');
+    const cancel = document.getElementById('extractCancel');
+    const controller = new AbortController();
+    extractionController = controller;
     btn.disabled = true;
-    btn.textContent = 'Exporting…';
-
-    try {
-      const res = await fetch('/api/export', {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ dbaUrl }),
+    btn.textContent = 'Extracting…';
+    cancel.hidden = false;
+    async function api(body) {
+      const res = await fetch('/api/extract', {
+        method: 'POST', headers: authHeaders(), signal: controller.signal,
+        body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok) { alert(data.error || `Export failed (${res.status})`); return; }
+      if (!res.ok) throw new Error(data.error || `Extraction failed (${res.status})`);
+      return data;
+    }
+    try {
+      const summaries = new Map();
+      const warnings = [];
+      const failedPages = [];
+      let total = null, pageLimit = 40, pagesFetched = 0, endReached = false;
+      for (let page = 1; page <= pageLimit; page++) {
+        status.textContent = `Fetching search page ${page}/${pageLimit}…`;
+        let data;
+        try { data = await api({ action: 'page', dbaUrl, page }); }
+        catch (error) {
+          if (error.name === 'AbortError' || page === 1) throw error;
+          failedPages.push({ page, error: error.message });
+          continue;
+        }
+        pagesFetched++;
+        if (page === 1) { total = data.total; pageLimit = data.maxPages; }
+        let added = 0;
+        for (const item of data.listings) {
+          if (!/^\d{1,20}$/.test(item.id)) { warnings.push('Skipped a listing without a valid numeric ID.'); continue; }
+          if (!summaries.has(item.id)) added++;
+          summaries.set(item.id, item);
+        }
+        if (!data.listings.length || (!added && page > 1)) {
+          endReached = !data.listings.length;
+          if (!endReached) warnings.push('DBA repeated a page; collection stopped to avoid duplicate requests.');
+          break;
+        }
+        if (total !== null && summaries.size >= total) { endReached = true; break; }
+      }
+      if (total !== null && summaries.size < total) {
+        warnings.push('Collected fewer listings than DBA reported; results may have changed or some pages were unavailable.');
+        endReached = false;
+      }
+      if (!endReached) warnings.push('Search collection ended before completeness could be confirmed (maximum 40 pages).');
+      if (!summaries.size) throw new Error('No listings found in this search.');
+      const ids = [...summaries.keys()];
+      const listings = [], failures = [];
+      for (let offset = 0; offset < ids.length; offset += 10) {
+        status.textContent = `Fetching details and matching ${Math.min(offset + 10, ids.length)}/${ids.length} listings…`;
+        const data = await api({ action: 'details', ids: ids.slice(offset, offset + 10), criteria, model });
+        for (const item of data.listings) listings.push({ ...summaries.get(item.id), ...item });
+        failures.push(...data.failures);
+      }
+      const complete = endReached && !failedPages.length && !failures.length && !warnings.length;
+      const data = {
+        schemaVersion: 1, url: dbaUrl, criteria, matchingModel: criteria ? model : null,
+        exportedAt: new Date().toISOString(), totalReported: total,
+        collection: { complete, pagesFetched, maxPages: 40, listingsCollected: ids.length,
+          matchedListings: listings.length, failedPages, detailFailures: failures, warnings: [...new Set(warnings)] },
+        listings,
+      };
       const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `dba-export-${stamp}.json`;
+      a.href = url;
+      a.download = `dba-extract-${stamp}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    } catch (err) {
-      alert(err.message || 'Unknown error during export');
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      status.textContent = `Downloaded ${listings.length} listings. ${complete ? 'Collection complete.' : 'Collection incomplete: check warnings and failures in the JSON file.'}`;
+    } catch (error) {
+      status.textContent = error.name === 'AbortError' ? 'Extraction cancelled. No file downloaded.' : `Extraction failed: ${error.message}`;
     } finally {
+      extractionController = null;
       btn.disabled = false;
-      btn.textContent = '⬇ Export JSON';
+      btn.textContent = '⬇ Extract JSON';
+      cancel.hidden = true;
     }
   }
 
@@ -611,3 +687,4 @@
 </script>
 </body>
 </html>
+
