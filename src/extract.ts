@@ -100,7 +100,11 @@ async function bodyJson(request: Request): Promise<RecordValue | null> {
 }
 
 export function validateSelection(text: string, allowedIds: string[]): Set<string> {
-  const value: unknown = JSON.parse(text);
+  // Models sometimes wrap the array in a ```json fence or add prose; parse only the [...] part.
+  const start = text.indexOf("["), end = text.lastIndexOf("]");
+  let value: unknown;
+  try { value = JSON.parse(start >= 0 && end > start ? text.slice(start, end + 1) : text); }
+  catch { throw new Error("Matching response was not readable; please retry this extraction."); }
   if (!Array.isArray(value) || value.some(id => typeof id !== "string" || !allowedIds.includes(id))) {
     throw new Error("Invalid matching response; extraction stopped rather than saving unreliable matches.");
   }
