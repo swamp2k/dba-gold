@@ -62,3 +62,10 @@ were removed when Access was added.
 - Frontend inline `onclick` handlers can only reach **`function` declarations** (global object), not
   top-level `const`/`let`. Declare any handler-referenced helper with `function`.
 - Keep `src/index.ts` single-file; it's small and intentionally dependency-light.
+
+## Session continuity
+
+- Read root `NOW.md` at the start of every session.
+- Update root `NOW.md` before ending every session, preserving relevant content and recording verified findings; mark uncertainty explicitly. Use the fields Doing, State, Next step, Blocked by, and Updated (YYYY-MM-DD).
+- Keep root `AGENTS.md` and `CLAUDE.md` identical. Whenever either root instruction file changes, update both identically.
+- Leave nested instruction files unchanged when synchronizing the root files.
