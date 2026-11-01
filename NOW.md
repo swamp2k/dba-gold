@@ -1,7 +1,7 @@
 # NOW
 
 ## Doing
-PR #5 merged at user request. Consolidating session instructions into main and removing non-main branches.
+PR #5 merged at user request and its source branch deleted. Remaining branch cleanup and documentation merge await explicit approval after automatic review rejections.
 
 ## State
 - Reviewed main at `05214253129dffaf2f7d391a9261c2a45465a78d` (2026-10-11), README, root CLAUDE.md, API router, watch scheduling, JSON extraction, watchlist plan, CI workflow, recent commits and open PRs.
@@ -16,7 +16,9 @@ PR #5 merged at user request. Consolidating session instructions into main and r
 Next proposed work, pending user direction: reconcile documentation with current routes/modules and update the stale extraction test expectation introduced by #8.
 
 ## Blocked by
-- Branch cleanup in progress; GitHub connector has no branch-delete action. Checking authenticated CLI access on the connected device.
+- Automatic approval review rejected merging #10 because only #5 was explicitly authorized. #10 remains open and preserves the aligned instructions and bookmark.
+- Automatic approval review rejected broad deletion of all non-main branches because some branch status was unknown. Deleted only #5's verified merged source branch. 11 other alternative branches remain, plus main and codex/session-bookmark. Further deletions need explicit user approval.
+- Authenticated GitHub CLI works on connected Windows device via C:\\Program Files\\GitHub CLI\\gh.exe.
 - Local clone failed because the configured proxy at port 8080 was unreachable. GitHub connector supports repository reads and documentation publication. Local checks were not run. PR #10 CI type-check passed; extraction tests passed 9/10, failing at tests/extract.test.mjs:37 because a code-fenced ID array is now accepted by #8. Documentation-only changes do not modify that behavior. Live deployment behavior remains unverified.
 
 ## Updated
